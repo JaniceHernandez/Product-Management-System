@@ -8,13 +8,15 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+build
 dist
 dist-ssr
 *.local
 .env
 .env.local
 .env.*.local
-
+.vite
+Thumbs.db
 
 # Editor directories and files
 .vscode/*
