@@ -1,6 +1,7 @@
 // src/pages/LoginPage.jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
   const [email, setEmail]         = useState('');
@@ -8,6 +9,7 @@ export default function LoginPage() {
   const [errors, setErrors]       = useState({});
   const [formError, setFormError] = useState('');
   const [loading, setLoading]     = useState(false);
+  const { authError } = useAuth();
 
   // ── Client-side validation ──────────────────────────────────
   function validate() {
@@ -77,9 +79,9 @@ export default function LoginPage() {
         </div>
 
         {/* Form-level error (set by M4 after failed Supabase call) */}
-        {formError && (
+        {(formError || authError) && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {formError}
+            {formError || authError}
           </div>
         )}
 
