@@ -5,95 +5,63 @@ import { supabase } from '../lib/supabaseClient';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [session,     setSession]     = useState(null);
+  const [session,     setSession]     = useState(undefined); // undefined = still loading
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading,     setLoading]     = useState(true);
   const [authError,   setAuthError]   = useState('');
 
-  // ── Login guard helper ───────────────────────────────────────
-  // Project guide Section 4.6 — runs after every SIGNED_IN event.
-  // Fetches the user row from public.user, checks record_status,
-  // and either populates currentUser or signs the user out.
-  async function runLoginGuard(supabaseSession) {
-    if (!supabaseSession) {
-      setCurrentUser(null);
-      setSession(null);
-      return;
-    }
+  // loading is true only until we know whether a session exists
+  const loading = session === undefined;
 
-    const { data: userRow, error } = await supabase
-      .from('user')
-      .select('record_status, user_type, username, firstName, lastName')
-      .eq('userId', supabaseSession.user.id)
-      .single();
-
-    if (error || !userRow) {
-      // User row not found — may happen if trigger hasn't run yet
-      await supabase.auth.signOut();
-      setSession(null);
-      setCurrentUser(null);
-      setAuthError('Account setup is incomplete. Please contact an administrator.');
-      return;
-    }
-
-    if (userRow.record_status !== 'ACTIVE') {
-      // Project guide Section 4.6 — inactive account: sign out and show error
-      await supabase.auth.signOut();
-      setSession(null);
-      setCurrentUser(null);
-      setAuthError('Your account is pending activation by an administrator.');
-      return;
-    }
-
-    // Active user — populate currentUser with merged auth + db data
-    setSession(supabaseSession);
-    setCurrentUser({
-      ...supabaseSession.user,
-      username:      userRow.username,
-      user_type:     userRow.user_type,
-      record_status: userRow.record_status,
-      firstName:     userRow.firstName,
-      lastName:      userRow.lastName,
-    });
-    setAuthError('');
-  }
-
-  // ── Auth state listener ──────────────────────────────────────
   useEffect(() => {
-    // Check for an existing session on app load
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      runLoginGuard(existingSession).finally(() => setLoading(false));
+    // 1. Check for an existing session on mount (handles page refresh)
+    supabase.auth.getSession().then(({ data: { session: existing } }) => {
+      setSession(existing ?? null);
+      if (existing) fetchUserProfile(existing.user.id);
     });
 
-    // Listen for all subsequent auth events (sign-in, sign-out, token refresh)
+    // 2. Listen for future auth events (sign-in, sign-out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (event === 'SIGNED_IN') {
-          setLoading(true);
-          await runLoginGuard(newSession);
-          setLoading(false);
-        }
-
-        if (event === 'SIGNED_OUT') {
-          setSession(null);
+      (_event, newSession) => {
+        setSession(newSession ?? null);
+        if (newSession) {
+          fetchUserProfile(newSession.user.id);
+        } else {
           setCurrentUser(null);
-        }
-
-        if (event === 'TOKEN_REFRESHED') {
-          setSession(newSession);
+          setAuthError('');
         }
       }
     );
 
-    // Cleanup listener on unmount
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Sign out helper ──────────────────────────────────────────
+  // Fetch the public.user profile row — non-blocking.
+  // maybeSingle() returns null (not an error) when no row is found.
+  // A failed fetch does NOT sign the user out — session stays alive.
+  async function fetchUserProfile(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('user')
+        .select('userId, username, user_type, record_status, firstName, lastName')
+        .eq('userId', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Could not fetch user profile:', error.message);
+        return; // session stays alive; profile just won't be populated yet
+      }
+
+      if (data) setCurrentUser(data);
+      // If data is null, trigger may still be running — session stays alive
+    } catch (err) {
+      console.warn('fetchUserProfile error:', err);
+    }
+  }
+
   async function signOut() {
     setAuthError('');
+    setCurrentUser(null);
     await supabase.auth.signOut();
-    // onAuthStateChange SIGNED_OUT event clears currentUser and session
   }
 
   const value = {
@@ -101,7 +69,9 @@ export function AuthProvider({ children }) {
     currentUser,
     loading,
     authError,
+    setAuthError,
     signOut,
+    refetchProfile: () => session && fetchUserProfile(session.user.id),
   };
 
   return (
@@ -112,9 +82,7 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used inside an <AuthProvider>.');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
 }
