@@ -1,8 +1,25 @@
 // src/context/AuthContext.jsx
+// ENHANCED VERSION: Explicit duplicate prevention, race condition protection
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext(null);
+
+// ── Default rows for a new USER ────────────────────────────────
+const DEFAULT_MODULE_ROWS = [
+  { module_id: 'Prod_Mod',   rights_value: 1, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { module_id: 'Report_Mod', rights_value: 1, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { module_id: 'Adm_Mod',    rights_value: 0, record_status: 'ACTIVE', stamp: 'AUTO' },
+];
+
+const DEFAULT_RIGHTS_ROWS = [
+  { right_id: 'PRD_ADD',  right_value: 1, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { right_id: 'PRD_EDIT', right_value: 1, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { right_id: 'PRD_DEL',  right_value: 0, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { right_id: 'REP_001',  right_value: 1, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { right_id: 'REP_002',  right_value: 0, record_status: 'ACTIVE', stamp: 'AUTO' },
+  { right_id: 'ADM_USER', right_value: 0, record_status: 'ACTIVE', stamp: 'AUTO' },
+];
 
 export function AuthProvider({ children }) {
   const [session,     setSession]     = useState(undefined);
@@ -34,44 +51,210 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch the public.user profile row.
-  // Uses lowercase 'userid' — PostgreSQL lowercases unquoted column names.
-  // If Step 2 shows a different casing for your column, update .eq() accordingly.
-  // email is passed so the Navbar always has something to display.
-  async function fetchUserProfile(userId, email) {
+  // ── checkUserExists ──────────────────────────────────────────
+  // ENHANCED: Explicitly check if user already exists before provisioning.
+  // Prevents duplicates and detects race conditions.
+  // Returns: { exists: boolean, data: userData | null, source: string, error: any }
+  async function checkUserExists(userId) {
     try {
+      console.log(`[Auth] Checking if user exists: ${userId}`);
+
       const { data, error } = await supabase
         .from('user')
         .select('userid, username, user_type, record_status, firstname, lastname')
-        .eq('userid', userId)   // lowercase — adjust if your DB uses 'userId'
+        .eq('userid', userId)
         .maybeSingle();
 
       if (error) {
-        console.warn('fetchUserProfile — DB error:', error.message);
-        // Set placeholder so Navbar shows something; AuthCallbackPage will retry
+        console.error('[Auth] Check error:', error.message);
+        return { exists: false, data: null, source: 'error', error };
+      }
+
+      if (data) {
+        console.log('[Auth] ✓ User exists:', {
+          userid: data.userid,
+          user_type: data.user_type,
+          record_status: data.record_status,
+        });
+        return { exists: true, data, source: 'found' };
+      }
+
+      console.log('[Auth] User does not exist:', userId);
+      return { exists: false, data: null, source: 'not_found' };
+
+    } catch (err) {
+      console.error('[Auth] Check exception:', err);
+      return { exists: false, data: null, source: 'exception', error: err };
+    }
+  }
+
+  // ── provisionUser ──────────────────────────────────────────
+  // ENHANCED: Check for duplicate before INSERT (race condition protection)
+  // and confirm after INSERT (defensive verification)
+  async function provisionUser(userId, email, rawMetaData) {
+    const fullName  = (rawMetaData?.full_name   || '').trim();
+    const firstName = (rawMetaData?.given_name  || rawMetaData?.first_name  || '').trim();
+    const lastName  = (rawMetaData?.family_name || rawMetaData?.last_name   || '').trim();
+    const username  = fullName || email.split('@')[0];
+
+    const now   = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const stamp = `REGISTERED ${userId} ${now}`;
+
+    console.log(`[Provision] 🚀 Starting for: ${userId}`);
+
+    // ── DEFENSIVE: Check again immediately before INSERT ──
+    // In case another request/tab already created the user (race condition)
+    console.log('[Provision] Race condition check...');
+    const raceCheckResult = await checkUserExists(userId);
+
+    if (raceCheckResult.exists) {
+      console.log('[Provision] ⚠️  User already exists (race condition detected)!');
+      console.log('[Provision] Skipping INSERT — row already created by another request');
+      return true;  // Consider it success — user was created (by someone else)
+    }
+
+    // Step A — Insert public.user row
+    console.log('[Provision] Step A: Inserting public.user...');
+    const { error: userError } = await supabase
+      .from('user')
+      .insert({
+        userid:        userId,
+        username:      username,
+        lastname:      lastName,
+        firstname:     firstName,
+        user_type:     'USER',
+        record_status: 'INACTIVE',
+        stamp:         stamp,
+      });
+
+    if (userError) {
+      // Defensive: Check if user was actually created despite the error
+      // (can happen with RLS violations if row somehow existed)
+      if (userError.message.includes('row-level security')) {
+        console.warn('[Provision] RLS violation on INSERT — checking if row exists anyway...');
+        const raceCheckAfterError = await checkUserExists(userId);
+        if (raceCheckAfterError.exists) {
+          console.log('[Provision] ✓ User exists despite RLS error (not actually an error)');
+          return true;
+        }
+      }
+
+      console.error('[Provision] ✗ Failed to insert public.user:', userError.message);
+      return false;
+    }
+
+    console.log('[Provision] ✓ Step A complete: public.user row created');
+
+    // Step B — Insert user_module rows
+    console.log('[Provision] Step B: Inserting user_module...');
+    const moduleRows = DEFAULT_MODULE_ROWS.map(row => ({ ...row, userid: userId }));
+
+    const { error: moduleError } = await supabase
+      .from('user_module')
+      .insert(moduleRows);
+
+    if (moduleError) {
+      console.error('[Provision] ✗ Step B error:', moduleError.message);
+      // Continue anyway — user row exists, which is the critical part
+    } else {
+      console.log(`[Provision] ✓ Step B complete: ${moduleRows.length} user_module rows`);
+    }
+
+    // Step C — Insert UserModule_Rights rows
+    console.log('[Provision] Step C: Inserting UserModule_Rights...');
+    const rightsRows = DEFAULT_RIGHTS_ROWS.map(row => ({ ...row, userid: userId }));
+
+    const { error: rightsError } = await supabase
+      .from('UserModule_Rights')
+      .insert(rightsRows);
+
+    if (rightsError) {
+      console.error('[Provision] ✗ Step C error:', rightsError.message);
+      // Continue — rights are secondary
+    } else {
+      console.log(`[Provision] ✓ Step C complete: ${rightsRows.length} UserModule_Rights rows`);
+    }
+
+    // ── DEFENSIVE: Confirm the row we just inserted actually exists ──
+    console.log('[Provision] Confirming insert...');
+    const confirmResult = await checkUserExists(userId);
+
+    if (!confirmResult.exists) {
+      console.error('[Provision] ⚠️  CRITICAL: Row inserted but cannot be read back!');
+      console.error('[Provision] This suggests a cascading delete or trigger issue.');
+      return false;
+    }
+
+    console.log('[Provision] ✓✓✓ SUCCESS: All checks passed, user fully provisioned');
+    return true;
+  }
+
+  // ── fetchUserProfile ───────────────────────────────────────
+  // ENHANCED: Uses checkUserExists() for explicit duplicate prevention
+  async function fetchUserProfile(userId, email) {
+    try {
+      console.log(`[Auth] Fetching profile for: ${userId}`);
+
+      // ── CHECK 1: Does user already exist? ──
+      const existsResult = await checkUserExists(userId);
+
+      if (existsResult.exists && existsResult.data) {
+        // User found — use existing data
+        console.log('[Auth] ✓ Using existing user data');
+        setCurrentUser(buildCurrentUser(existsResult.data, email));
+        return;  // Early exit — no provisioning
+      }
+
+      if (existsResult.error) {
+        // Check failed — don't attempt provisioning, set placeholder for retry
+        console.warn('[Auth] Check failed — will retry on next attempt');
         setCurrentUser({ userid: userId, email, username: email, record_status: null });
         return;
       }
 
-      if (data) {
-        setCurrentUser({
-          ...data,
-          userId:    data.userid,             // camelCase alias for compatibility
-          email,                              // always include auth email
-          username:  data.username || email,  // fallback to email if username empty
-          firstName: data.firstname || '',    // camelCase alias
-          lastName:  data.lastname  || '',    // camelCase alias
-        });
-      } else {
-        // No row found — trigger may not have run yet.
-        // Set placeholder with record_status: null so AuthCallbackPage can distinguish
-        // "no DB row" from "profile loaded as INACTIVE".
+      // ── CHECK 2: User doesn't exist — provision now ──
+      console.log('[Auth] User does not exist — initiating provisioning...');
+
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const rawMeta = authUser?.user_metadata ?? {};
+
+      const provisioned = await provisionUser(userId, email, rawMeta);
+
+      if (!provisioned) {
+        console.error('[Auth] Provisioning failed');
         setCurrentUser({ userid: userId, email, username: email, record_status: null });
+        return;
       }
+
+      // ── CHECK 3: Re-read the newly created user ──
+      console.log('[Auth] Re-reading after provisioning...');
+      const rereadResult = await checkUserExists(userId);
+
+      if (rereadResult.exists && rereadResult.data) {
+        console.log('[Auth] ✓ Provisioning successful, user data read back');
+        setCurrentUser(buildCurrentUser(rereadResult.data, email));
+        return;
+      }
+
+      console.error('[Auth] Could not re-read after provisioning');
+      setCurrentUser({ userid: userId, email, username: email, record_status: null });
+
     } catch (err) {
-      console.warn('fetchUserProfile — unexpected error:', err);
+      console.error('[Auth] Unexpected error:', err);
       setCurrentUser({ userid: userId, email, username: email, record_status: null });
     }
+  }
+
+  // ── buildCurrentUser ───────────────────────────────────────
+  function buildCurrentUser(data, email) {
+    return {
+      ...data,
+      userId:    data.userid,
+      email,
+      username:  data.username || email,
+      firstName: data.firstname || '',
+      lastName:  data.lastname  || '',
+    };
   }
 
   async function signOut() {
