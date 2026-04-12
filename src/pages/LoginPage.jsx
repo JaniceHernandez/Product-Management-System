@@ -1,20 +1,33 @@
 // src/pages/LoginPage.jsx
+// FIXED VERSION: Auto-signout when landing on error pages
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth }  from '../hooks/useAuth';
 import { supabase } from '../lib/supabaseClient';
 
 export default function LoginPage() {
-  const { session, loading } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { session, loading, signOut } = useAuth();
+  const navigate             = useNavigate();
+  const [searchParams]       = useSearchParams();
 
-  // Show activation error when redirected from login guard
-  const activationError = searchParams.get('error') === 'not_activated'
-    ? 'Your account is pending activation by an administrator.'
-    : '';
+  const errorParam = searchParams.get('error');
 
-  // Redirect to /products if already logged in
+  const errorMessages = {
+    not_activated:    'Your account is pending activation by an administrator.',
+    setup_incomplete: 'Your account could not be set up automatically. Please contact an administrator.',
+  };
+
+  const displayError = errorMessages[errorParam] ?? '';
+
+  // FIX: When user lands on error page, sign them out immediately
+  // This clears the old session so they can sign in with a different account
+  useEffect(() => {
+    if (errorParam && !loading) {
+      signOut().catch(err => console.warn('Logout during error redirect:', err.message));
+    }
+  }, [errorParam, loading, signOut]);
+
+  // Redirect if already logged in with ACTIVE account
   useEffect(() => {
     if (!loading && session) {
       navigate('/products', { replace: true });
@@ -24,16 +37,15 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
+      options: { 
         redirectTo: `${window.location.origin}/auth/callback`,
+        // Force reauthentication so they can use a different Google account
+        queryParams: { prompt: 'select_account' }
       },
     });
-    if (error) {
-      console.error('Google sign-in error:', error.message);
-    }
+    if (error) console.error('OAuth initiation error:', error.message);
   }
 
-  // Show spinner while auth state is loading
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -49,14 +61,16 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Hope PMS</h1>
         <p className="text-sm text-gray-500 mb-8">Sign in to continue</p>
 
-        {/* Activation error — shown when redirected from ProtectedRoute or AuthCallbackPage */}
-        {activationError && (
+        {displayError && (
           <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {activationError}
+            <p className="font-semibold mb-2">⚠️ Sign-in Issue</p>
+            <p>{displayError}</p>
+            <p className="text-xs mt-2 text-red-600">
+              You've been signed out. Please try signing in again with a different account if needed.
+            </p>
           </div>
         )}
 
-        {/* Google Sign-In — only auth method */}
         <button
           onClick={handleGoogleSignIn}
           className="w-full flex items-center justify-center gap-3 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-xl text-sm transition-colors"

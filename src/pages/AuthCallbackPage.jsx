@@ -1,48 +1,83 @@
 // src/pages/AuthCallbackPage.jsx
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+// FIXED VERSION: Clear session for INACTIVE/failed users before redirecting to login
+import { useEffect, useRef } from 'react';
+import { useNavigate }       from 'react-router-dom';
+import { useAuth }           from '../hooks/useAuth';
+import { supabase }          from '../lib/supabaseClient';
 
 export default function AuthCallbackPage() {
-  const navigate = useNavigate();
-  const { session, loading, currentUser } = useAuth();
-  const [waited, setWaited] = useState(false);
-
-  // Give AuthContext 2 seconds to process the OAuth redirect
-  useEffect(() => {
-    const timer = setTimeout(() => setWaited(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  const navigate    = useNavigate();
+  const { session, loading, currentUser, refetchProfile, signOut } = useAuth();
+  const attemptRef  = useRef(0);
+  const maxAttempts = 5;
+  const signOutRef  = useRef(false);
 
   useEffect(() => {
-    if (loading || !waited) return;
+    if (loading) return;
 
+    // No session — OAuth failed or was cancelled
     if (!session) {
-      // No session after 2 seconds — OAuth failed or was cancelled
       navigate('/login', { replace: true });
       return;
     }
 
-    if (currentUser) {
-      if (currentUser.record_status === 'ACTIVE') {
-        navigate('/products', { replace: true });
-      } else {
-        // INACTIVE — account not yet activated by admin
-        navigate('/login?error=not_activated', { replace: true });
-      }
-    } else {
-      // Session confirmed but public.user row not yet available
-      // (trigger may still be running) — go to /products anyway.
-      // ProtectedRoute will handle the INACTIVE check on arrival.
+    // Case 1: Profile loaded, explicitly ACTIVE → go to app
+    if (currentUser && currentUser.record_status === 'ACTIVE') {
       navigate('/products', { replace: true });
+      return;
     }
-  }, [session, loading, currentUser, waited, navigate]);
+
+    // Case 2: Profile loaded, explicitly INACTIVE → sign out and block access
+    if (currentUser && currentUser.record_status === 'INACTIVE') {
+      // Sign out to clear the session so they can try with a different account
+      if (!signOutRef.current) {
+        signOutRef.current = true;
+        signOut().then(() => {
+          navigate('/login?error=not_activated', { replace: true });
+        }).catch(err => {
+          console.warn('Error signing out INACTIVE user:', err);
+          navigate('/login?error=not_activated', { replace: true });
+        });
+      }
+      return;
+    }
+
+    // Case 3: record_status is null (DB row missing or not yet loaded) — retry
+    if (attemptRef.current < maxAttempts) {
+      attemptRef.current += 1;
+      const delay = attemptRef.current * 1000; // 1s, 2s, 3s, 4s, 5s
+
+      const timer = setTimeout(() => {
+        refetchProfile();
+        // useEffect re-runs when currentUser changes after refetch
+      }, delay);
+
+      return () => clearTimeout(timer);
+    }
+
+    // Case 4: All retries exhausted — trigger failed or RLS still blocking
+    // Sign out to ensure clean state
+    if (!signOutRef.current) {
+      signOutRef.current = true;
+      signOut().then(() => {
+        navigate('/login?error=setup_incomplete', { replace: true });
+      }).catch(err => {
+        console.warn('Error signing out after setup failure:', err);
+        navigate('/login?error=setup_incomplete', { replace: true });
+      });
+    }
+
+  }, [loading, session, currentUser, navigate, refetchProfile, signOut]);
+
+  const attemptMessage = attemptRef.current > 0
+    ? `Verifying account… (attempt ${attemptRef.current} of ${maxAttempts})`
+    : 'Please wait while we verify your account.';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
       <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       <p className="text-sm text-gray-600 font-medium">Signing you in…</p>
-      <p className="text-xs text-gray-400">Please wait while we verify your account.</p>
+      <p className="text-xs text-gray-400">{attemptMessage}</p>
     </div>
   );
 }
