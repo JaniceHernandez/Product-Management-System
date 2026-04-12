@@ -1,5 +1,6 @@
 // src/pages/LoginPage.jsx
-// FIXED VERSION: Auto-signout when landing on error pages
+// FIXED: Auto-signout when landing on error pages so users are never stuck.
+// Google button passes prompt: 'select_account' so a different account can be chosen.
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth }  from '../hooks/useAuth';
@@ -7,8 +8,8 @@ import { supabase } from '../lib/supabaseClient';
 
 export default function LoginPage() {
   const { session, loading, signOut } = useAuth();
-  const navigate             = useNavigate();
-  const [searchParams]       = useSearchParams();
+  const navigate                      = useNavigate();
+  const [searchParams]                = useSearchParams();
 
   const errorParam = searchParams.get('error');
 
@@ -19,15 +20,20 @@ export default function LoginPage() {
 
   const displayError = errorMessages[errorParam] ?? '';
 
-  // FIX: When user lands on error page, sign them out immediately
-  // This clears the old session so they can sign in with a different account
+  // FIX — Auto-signout on error arrival.
+  // When a user is redirected to /login?error=..., their Supabase session
+  // may still be active (e.g., if AuthCallbackPage did not sign them out first,
+  // or if they navigate directly). Signing out here ensures the session is
+  // cleared so clicking "Sign in with Google" starts a fresh flow.
   useEffect(() => {
     if (errorParam && !loading) {
-      signOut().catch(err => console.warn('Logout during error redirect:', err.message));
+      signOut().catch(err =>
+        console.warn('Auto-signout on error page:', err.message)
+      );
     }
   }, [errorParam, loading, signOut]);
 
-  // Redirect if already logged in with ACTIVE account
+  // Redirect to /products if already fully signed in with an ACTIVE session
   useEffect(() => {
     if (!loading && session) {
       navigate('/products', { replace: true });
@@ -37,10 +43,11 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { 
+      options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        // Force reauthentication so they can use a different Google account
-        queryParams: { prompt: 'select_account' }
+        // Force Google to show account picker every time.
+        // Prevents re-authenticating as a blocked account silently.
+        queryParams: { prompt: 'select_account' },
       },
     });
     if (error) console.error('OAuth initiation error:', error.message);
@@ -62,11 +69,11 @@ export default function LoginPage() {
         <p className="text-sm text-gray-500 mb-8">Sign in to continue</p>
 
         {displayError && (
-          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            <p className="font-semibold mb-2">⚠️ Sign-in Issue</p>
+          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-left">
+            <p className="font-semibold mb-1">⚠️ Sign-in Issue</p>
             <p>{displayError}</p>
-            <p className="text-xs mt-2 text-red-600">
-              You've been signed out. Please try signing in again with a different account if needed.
+            <p className="text-xs mt-2 text-red-500">
+              You've been signed out. Please try signing in again, or use a different account.
             </p>
           </div>
         )}

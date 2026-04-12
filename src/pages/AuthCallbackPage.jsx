@@ -1,16 +1,16 @@
 // src/pages/AuthCallbackPage.jsx
-// FIXED VERSION: Clear session for INACTIVE/failed users before redirecting to login
+// FIXED: Signs out before redirecting to error pages so the session
+// is cleared and the user can try signing in with a different account.
 import { useEffect, useRef } from 'react';
 import { useNavigate }       from 'react-router-dom';
 import { useAuth }           from '../hooks/useAuth';
-import { supabase }          from '../lib/supabaseClient';
 
 export default function AuthCallbackPage() {
   const navigate    = useNavigate();
   const { session, loading, currentUser, refetchProfile, signOut } = useAuth();
   const attemptRef  = useRef(0);
   const maxAttempts = 5;
-  const signOutRef  = useRef(false);
+  const signOutRef  = useRef(false); // prevents double-signout on re-renders
 
   useEffect(() => {
     if (loading) return;
@@ -27,17 +27,19 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    // Case 2: Profile loaded, explicitly INACTIVE → sign out and block access
+    // Case 2: Profile loaded, explicitly INACTIVE → sign out and block
+    // Sign out BEFORE navigating so the session is clear when /login loads.
+    // This prevents the stuck loop where re-clicking "Sign in with Google"
+    // silently re-authenticates the same blocked account.
     if (currentUser && currentUser.record_status === 'INACTIVE') {
-      // Sign out to clear the session so they can try with a different account
       if (!signOutRef.current) {
         signOutRef.current = true;
-        signOut().then(() => {
-          navigate('/login?error=not_activated', { replace: true });
-        }).catch(err => {
-          console.warn('Error signing out INACTIVE user:', err);
-          navigate('/login?error=not_activated', { replace: true });
-        });
+        signOut()
+          .then(() => navigate('/login?error=not_activated', { replace: true }))
+          .catch(err => {
+            console.warn('Error signing out INACTIVE user:', err.message);
+            navigate('/login?error=not_activated', { replace: true });
+          });
       }
       return;
     }
@@ -55,16 +57,16 @@ export default function AuthCallbackPage() {
       return () => clearTimeout(timer);
     }
 
-    // Case 4: All retries exhausted — trigger failed or RLS still blocking
-    // Sign out to ensure clean state
+    // Case 4: All retries exhausted — provisioning failed or RLS still blocking
+    // Sign out to ensure clean state before showing the error
     if (!signOutRef.current) {
       signOutRef.current = true;
-      signOut().then(() => {
-        navigate('/login?error=setup_incomplete', { replace: true });
-      }).catch(err => {
-        console.warn('Error signing out after setup failure:', err);
-        navigate('/login?error=setup_incomplete', { replace: true });
-      });
+      signOut()
+        .then(() => navigate('/login?error=setup_incomplete', { replace: true }))
+        .catch(err => {
+          console.warn('Error signing out after setup failure:', err.message);
+          navigate('/login?error=setup_incomplete', { replace: true });
+        });
     }
 
   }, [loading, session, currentUser, navigate, refetchProfile, signOut]);
