@@ -5,26 +5,25 @@ import { supabase } from '../lib/supabaseClient';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [session,     setSession]     = useState(undefined); // undefined = still loading
+  const [session,     setSession]     = useState(undefined);
   const [currentUser, setCurrentUser] = useState(null);
   const [authError,   setAuthError]   = useState('');
 
-  // loading is true only until we know whether a session exists
   const loading = session === undefined;
 
   useEffect(() => {
-    // 1. Check for an existing session on mount (handles page refresh)
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       setSession(existing ?? null);
-      if (existing) fetchUserProfile(existing.user.id);
+      if (existing) {
+        fetchUserProfile(existing.user.id, existing.user.email);
+      }
     });
 
-    // 2. Listen for future auth events (sign-in, sign-out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession ?? null);
         if (newSession) {
-          fetchUserProfile(newSession.user.id);
+          fetchUserProfile(newSession.user.id, newSession.user.email);
         } else {
           setCurrentUser(null);
           setAuthError('');
@@ -35,26 +34,43 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch the public.user profile row — non-blocking.
-  // maybeSingle() returns null (not an error) when no row is found.
-  // A failed fetch does NOT sign the user out — session stays alive.
-  async function fetchUserProfile(userId) {
+  // Fetch the public.user profile row.
+  // Uses lowercase 'userid' — PostgreSQL lowercases unquoted column names.
+  // If Step 2 shows a different casing for your column, update .eq() accordingly.
+  // email is passed so the Navbar always has something to display.
+  async function fetchUserProfile(userId, email) {
     try {
       const { data, error } = await supabase
         .from('user')
-        .select('userId, username, user_type, record_status, firstName, lastName')
-        .eq('userId', userId)
+        .select('userid, username, user_type, record_status, firstname, lastname')
+        .eq('userid', userId)   // lowercase — adjust if your DB uses 'userId'
         .maybeSingle();
 
       if (error) {
-        console.warn('Could not fetch user profile:', error.message);
-        return; // session stays alive; profile just won't be populated yet
+        console.warn('fetchUserProfile — DB error:', error.message);
+        // Set placeholder so Navbar shows something; AuthCallbackPage will retry
+        setCurrentUser({ userid: userId, email, username: email, record_status: null });
+        return;
       }
 
-      if (data) setCurrentUser(data);
-      // If data is null, trigger may still be running — session stays alive
+      if (data) {
+        setCurrentUser({
+          ...data,
+          userId:    data.userid,             // camelCase alias for compatibility
+          email,                              // always include auth email
+          username:  data.username || email,  // fallback to email if username empty
+          firstName: data.firstname || '',    // camelCase alias
+          lastName:  data.lastname  || '',    // camelCase alias
+        });
+      } else {
+        // No row found — trigger may not have run yet.
+        // Set placeholder with record_status: null so AuthCallbackPage can distinguish
+        // "no DB row" from "profile loaded as INACTIVE".
+        setCurrentUser({ userid: userId, email, username: email, record_status: null });
+      }
     } catch (err) {
-      console.warn('fetchUserProfile error:', err);
+      console.warn('fetchUserProfile — unexpected error:', err);
+      setCurrentUser({ userid: userId, email, username: email, record_status: null });
     }
   }
 
@@ -71,7 +87,9 @@ export function AuthProvider({ children }) {
     authError,
     setAuthError,
     signOut,
-    refetchProfile: () => session && fetchUserProfile(session.user.id),
+    refetchProfile: () => {
+      if (session) fetchUserProfile(session.user.id, session.user.email);
+    },
   };
 
   return (
@@ -83,6 +101,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  if (!ctx) throw new Error('useAuth must be used inside an <AuthProvider>.');
   return ctx;
 }
