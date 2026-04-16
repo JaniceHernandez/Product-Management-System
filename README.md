@@ -56,19 +56,19 @@ before the user can access the application.
 ```bash
 git clone git@github.com:<your-org>/hope-pms.git
 cd hope-pms
-
+```
 
 ### 3. Install dependencies
 
 ```bash
 npm install
-
+```
 
 ### 4. Set up environment variables
 
 ```bash
 cp .env.example .env
-
+```
 
 Open .env and fill in the Supabase credentials (get from Angela, M3):
 
@@ -76,7 +76,7 @@ Open .env and fill in the Supabase credentials (get from Angela, M3):
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
 VITE_APP_NAME=Hope PMS
-
+```
 
 **Never commit `.env`.** It is gitignored. Share actual values only via secure channel.
 
@@ -85,7 +85,7 @@ VITE_APP_NAME=Hope PMS
 
 ```bash
 npm run dev
-
+```
 
 Open http://localhost:5173. You will be redirected to /login. Sign in with your Google account.
 
@@ -93,7 +93,7 @@ Open http://localhost:5173. You will be redirected to /login. Sign in with your 
 
 ```bash
 npm test
-
+```
 
 ---
 
@@ -118,7 +118,7 @@ Flow: feature/task → PR → dev → sprint release PR → main
 ---
 
 ## Project Structure
-
+```
 hope-pms/
 ├── db/
 │   └── migrations/        SQL migration files (001–009 after Sprint 1)
@@ -138,7 +138,7 @@ hope-pms/
     ├── pages/             One component per route
     ├── services/          Supabase service functions (Sprint 2)
     └── utils/             Helper functions (Sprint 2)
-
+```
 
 ---
 
