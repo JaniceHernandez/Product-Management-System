@@ -9,36 +9,43 @@ import AdminPage        from './pages/AdminPage';
 import DeletedItemsPage from './pages/DeletedItemsPage';
 import AppLayout        from './components/layout/AppLayout';
 import ProtectedRoute   from './components/ProtectedRoute';
+import RoleRoute        from './components/RoleRoute';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/"              element={<Navigate to="/login" replace />} />
 
-      {/* Public routes */}
+      {/* Public */}
       <Route path="/login"         element={<LoginPage />} />
       <Route path="/register"      element={<Navigate to="/login" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-      {/* Protected routes */}
+      {/* Protected — session required */}
       <Route path="/products" element={
         <ProtectedRoute>
           <AppLayout><ProductsPage /></AppLayout>
         </ProtectedRoute>
       } />
+
       <Route path="/reports" element={
         <ProtectedRoute>
           <AppLayout><ReportsPage /></AppLayout>
         </ProtectedRoute>
       } />
+
       <Route path="/admin" element={
         <ProtectedRoute>
           <AppLayout><AdminPage /></AppLayout>
         </ProtectedRoute>
       } />
+
+      {/* Deleted Items — session required AND role must be ADMIN or SUPERADMIN */}
       <Route path="/deleted-items" element={
         <ProtectedRoute>
-          <AppLayout><DeletedItemsPage /></AppLayout>
+          <RoleRoute allowedRoles={['ADMIN', 'SUPERADMIN']}>
+            <AppLayout><DeletedItemsPage /></AppLayout>
+          </RoleRoute>
         </ProtectedRoute>
       } />
 
