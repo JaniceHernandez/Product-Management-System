@@ -165,7 +165,7 @@ export function AuthProvider({ children }) {
     const rightsRows = DEFAULT_RIGHTS_ROWS.map(row => ({ ...row, userid: userId }));
 
     const { error: rightsError } = await supabase
-      .from('UserModule_Rights')
+      .from('usermodule_rights')
       .insert(rightsRows);
 
     if (rightsError) {

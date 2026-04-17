@@ -60,7 +60,7 @@ export function UserRightsProvider({ children }) {
     try {
       // First attempt: lowercase column names
       const { data, error } = await supabase
-        .from('UserModule_Rights')
+        .from('usermodule_rights')
         .select('right_id, right_value, record_status')
         .eq('userid', userId);
  
@@ -71,7 +71,7 @@ export function UserRightsProvider({ children }) {
  
       // Second attempt: mixed-case column names (if table was created with quoted identifiers)
       const { data: data2, error: error2 } = await supabase
-        .from('UserModule_Rights')
+        .from('usermodule_rights')
         .select('"Right_ID", "Right_value", "Record_status"')
         .eq('userid', userId);
  
