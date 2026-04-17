@@ -1,17 +1,20 @@
 // src/pages/LoginPage.jsx
-// FIXED: Auto-signout when landing on error pages so users are never stuck.
-// Google button passes prompt: 'select_account' so a different account can be chosen.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth }  from '../hooks/useAuth';
 import { supabase } from '../lib/supabaseClient';
 
 export default function LoginPage() {
-  const { session, loading, signOut } = useAuth();
-  const navigate                      = useNavigate();
-  const [searchParams]                = useSearchParams();
+  const { session, loading, currentUser, signOut } = useAuth();
+  const navigate       = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const errorParam = searchParams.get('error');
+
+  // Track whether the auto-signout on an error page has already completed.
+  // This prevents the redirect useEffect from firing while signout is still
+  // in progress, and also prevents double-signout calls.
+  const [signedOutForError, setSignedOutForError] = useState(false);
 
   const errorMessages = {
     not_activated:    'Your account is pending activation by an administrator.',
@@ -20,40 +23,73 @@ export default function LoginPage() {
 
   const displayError = errorMessages[errorParam] ?? '';
 
-  // FIX — Auto-signout on error arrival.
-  // When a user is redirected to /login?error=..., their Supabase session
-  // may still be active (e.g., if AuthCallbackPage did not sign them out first,
-  // or if they navigate directly). Signing out here ensures the session is
-  // cleared so clicking "Sign in with Google" starts a fresh flow.
+  // ── Effect 1: Auto-signout when landing on an error URL ──────
+  // Only runs when there is an error param in the URL.
+  // Signs out, then marks completion so Effect 2 can safely redirect.
+  // The auto-redirect to /login (clean) happens after signout resolves.
   useEffect(() => {
-    if (errorParam && !loading) {
-      signOut().catch(err =>
-        console.warn('Auto-signout on error page:', err.message)
-      );
-    }
-  }, [errorParam, loading, signOut]);
+    if (!errorParam || loading) return;
+    if (signedOutForError) return; // already handled
 
-  // Redirect to /products if already fully signed in with an ACTIVE session
+    signOut()
+      .catch(err => console.warn('Auto-signout on error page:', err.message))
+      .finally(() => {
+        setSignedOutForError(true);
+        // Replace the current URL with /login (no error param) so:
+        // 1. A page refresh does not re-trigger the error flow
+        // 2. The user sees the clean login page after signout
+        // Small delay gives React time to process the signout state update
+        setTimeout(() => {
+          navigate('/login', { replace: true });
+        }, 100);
+      });
+  }, [errorParam, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  // signOut and navigate are stable references — omitting to prevent
+  // the effect re-running on every render
+
+  // ── Effect 2: Redirect to /products for a valid active session ──
+  // Only fires when:
+  //   - No error param in URL (clean login page)
+  //   - Not currently signing out for an error
+  //   - Session confirmed by Supabase
+  //   - currentUser is loaded AND has record_status = ACTIVE
+  // This ensures a user with a persisted session (hard refresh, new tab)
+  // is sent straight to /products without having to click anything.
   useEffect(() => {
-    if (!loading && session) {
+    if (loading)       return; // session check still in progress
+    if (errorParam)    return; // error page — signout is handling this
+    if (!session)      return; // no session — stay on login
+
+    // Wait for the profile to load before checking activation status.
+    // currentUser is null while fetchUserProfile is in flight.
+    if (!currentUser)  return;
+
+    if (currentUser.record_status === 'ACTIVE') {
       navigate('/products', { replace: true });
     }
-  }, [session, loading, navigate]);
+    // If record_status is INACTIVE or null, stay on the login page.
+    // AuthCallbackPage handles the redirect for those cases during the
+    // OAuth flow. If the user somehow arrives here with an INACTIVE
+    // session, they just see the login page — which is correct.
+  }, [loading, session, currentUser, errorParam, navigate]);
 
   async function handleGoogleSignIn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        // Force Google to show account picker every time.
-        // Prevents re-authenticating as a blocked account silently.
+        // Force Google to show account picker every time so the user
+        // can choose a different account if their previous one was blocked.
         queryParams: { prompt: 'select_account' },
       },
     });
     if (error) console.error('OAuth initiation error:', error.message);
   }
 
-  if (loading) {
+  // Show spinner while:
+  // - Initial session check is running (loading = true)
+  // - Or an error-param signout is in progress (not yet signedOutForError)
+  if (loading || (errorParam && !signedOutForError)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -73,7 +109,8 @@ export default function LoginPage() {
             <p className="font-semibold mb-1">⚠️ Sign-in Issue</p>
             <p>{displayError}</p>
             <p className="text-xs mt-2 text-red-500">
-              You've been signed out. Please try signing in again, or use a different account.
+              You have been signed out. Please try signing in again,
+              or use a different account if needed.
             </p>
           </div>
         )}
