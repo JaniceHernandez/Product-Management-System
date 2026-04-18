@@ -1,6 +1,6 @@
 // src/components/products/EditProductModal.jsx
+import { useProductRights } from '../../hooks/useProductRights';
 import { useState, useEffect } from 'react';
-import { useAuth }        from '../../hooks/useAuth';
 import { updateProduct }  from '../../services/productService';
 
 const UNIT_OPTIONS = ['pc', 'ea', 'mtr', 'pkg', 'ltr'];
@@ -11,7 +11,10 @@ const UNIT_OPTIONS = ['pc', 'ea', 'mtr', 'pkg', 'ltr'];
  * @param {Function} onSuccess
  */
 export default function EditProductModal({ product, onClose, onSuccess }) {
-  const { currentUser } = useAuth();
+  const { canEdit, rightsLoading } = useProductRights();
+
+if (rightsLoading) return null;
+if (!canEdit) return null;
 
   const [description, setDescription] = useState(product?.description ?? '');
   const [unit,        setUnit]        = useState(product?.unit ?? 'pc');

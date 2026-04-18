@@ -1,6 +1,6 @@
 // src/components/products/AddProductModal.jsx
+import { useProductRights } from '../../hooks/useProductRights';
 import { useState, useEffect } from 'react';
-import { useAuth }      from '../../hooks/useAuth';
 import { addProduct }   from '../../services/productService';
 
 const UNIT_OPTIONS = ['pc', 'ea', 'mtr', 'pkg', 'ltr'];
@@ -10,7 +10,10 @@ const UNIT_OPTIONS = ['pc', 'ea', 'mtr', 'pkg', 'ltr'];
  * @param {Function} onSuccess - Called after successful product creation
  */
 export default function AddProductModal({ onClose, onSuccess }) {
-  const { currentUser } = useAuth();
+  const { canAdd, rightsLoading } = useProductRights();
+
+if (rightsLoading) return null;
+if (!canAdd) return null;
 
   const [prodcode,    setProdcode]    = useState('');
   const [description, setDescription] = useState('');
