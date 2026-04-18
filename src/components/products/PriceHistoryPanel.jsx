@@ -1,6 +1,7 @@
 // src/components/products/PriceHistoryPanel.jsx
+import { useProductRights } from '../../hooks/useProductRights';
 import { useState, useEffect } from 'react';
-import { useAuth }           from '../../hooks/useAuth';
+
 import { getPriceHistory }   from '../../services/priceHistService';
 import AddPriceEntryForm     from './AddPriceEntryForm';
 
@@ -10,14 +11,14 @@ import AddPriceEntryForm     from './AddPriceEntryForm';
  * @param {Function} onClose  - Called when user collapses the panel
  */
 export default function PriceHistoryPanel({ prodcode, isOpen}) {
-  const { currentUser } = useAuth();
+
 
   const [history,  setHistory]  = useState([]);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
 
   // Stamp visibility: ADMIN sees pricehist stamps; SUPERADMIN sees all; USER never
-  const showStamp = ['ADMIN', 'SUPERADMIN'].includes(currentUser?.user_type);
+  const { showStamp } = useProductRights();
 
   // Fetch when panel opens
   useEffect(() => {

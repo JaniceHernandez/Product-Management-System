@@ -1,8 +1,8 @@
 // src/pages/ProductsPage.jsx
+import { useProductRights } from '../hooks/useProductRights';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import PriceHistoryPanel        from '../components/products/PriceHistoryPanel';
-import { useAuth }              from '../hooks/useAuth';
-import { useRights }            from '../hooks/useRights';
+
 import { getProducts }          from '../services/productService';
 import { getAllCurrentPrices }  from '../services/priceHistService';
 import AddProductModal          from '../components/products/AddProductModal';
@@ -28,9 +28,7 @@ function SortTh({ field, label, sortField, sortDirection, onSort }) {
 }
 
 export default function ProductsPage() {
-  const { currentUser } = useAuth();
-  const { rights }      = useRights();
-  const userType        = currentUser?.user_type ?? 'USER';
+  
 
   // ── Data ─────────────────────────────────────────────────────
   const [products,  setProducts]  = useState([]);
@@ -52,12 +50,7 @@ export default function ProductsPage() {
     setExpandedProdcode(prev => prev === prodcode ? null : prodcode);
   }
 
-  // ── Rights (project guide Section 2.2) ───────────────────────
-  const canAdd    = rights?.PRD_ADD  === 1;
-  const canEdit   = rights?.PRD_EDIT === 1;
-  const canDelete = rights?.PRD_DEL  === 1;
-  const showStamp = ['ADMIN', 'SUPERADMIN'].includes(userType);
-
+ const { canAdd, canEdit, canDelete, showStamp, currentUser, userType } = useProductRights();
   // ── Fetch ─────────────────────────────────────────────────────
   async function fetchData() {
     setLoading(true);

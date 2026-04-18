@@ -1,6 +1,6 @@
 // src/components/products/SoftDeleteConfirmDialog.jsx
+import { useProductRights } from '../../hooks/useProductRights';
 import { useState, useEffect } from 'react';
-import { useAuth }             from '../../hooks/useAuth';
 import { softDeleteProduct }   from '../../services/productService';
 
 /**
@@ -9,7 +9,10 @@ import { softDeleteProduct }   from '../../services/productService';
  * @param {Function} onSuccess
  */
 export default function SoftDeleteConfirmDialog({ product, onClose, onSuccess }) {
-  const { currentUser } = useAuth();
+  const { canDelete, rightsLoading } = useProductRights();
+
+if (rightsLoading) return null;
+if (!canDelete) return null;
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
