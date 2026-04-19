@@ -12,15 +12,14 @@ const UNIT_OPTIONS = ['pc', 'ea', 'mtr', 'pkg', 'ltr'];
  */
 export default function EditProductModal({ product, onClose, onSuccess }) {
   const { canEdit, rightsLoading } = useProductRights();
-
-if (rightsLoading) return null;
-if (!canEdit) return null;
-
   const [description, setDescription] = useState(product?.description ?? '');
   const [unit,        setUnit]        = useState(product?.unit ?? 'pc');
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  if (rightsLoading) return null;
+  if (!canEdit) return null;
 
   // Close on Escape
   useEffect(() => {

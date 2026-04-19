@@ -1,22 +1,16 @@
 // src/components/products/SoftDeleteConfirmDialog.jsx
-import { useProductRights } from '../../hooks/useProductRights';
-import { useState, useEffect } from 'react';
-import { softDeleteProduct }   from '../../services/productService';
+import { useState, useEffect }        from 'react';
+import { useAuth }                    from '../../hooks/useAuth';
+import { useProductRights }           from '../../hooks/useProductRights';
+import { softDeleteProduct }          from '../../services/productService';
 
-/**
- * @param {object}   product   - The product row selected in ProductsPage
- * @param {Function} onClose
- * @param {Function} onSuccess
- */
 export default function SoftDeleteConfirmDialog({ product, onClose, onSuccess }) {
+  // ── All hooks first, unconditionally ──────────────────────────
+  const { currentUser }              = useAuth();
   const { canDelete, rightsLoading } = useProductRights();
+  const [loading, setLoading]        = useState(false);
+  const [error,   setError]          = useState('');
 
-if (rightsLoading) return null;
-if (!canDelete) return null;
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
-
-  // Close on Escape
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape') onClose();
@@ -25,13 +19,18 @@ if (!canDelete) return null;
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  // ── Early returns after all hooks ─────────────────────────────
+  if (rightsLoading) return null;
+  if (!canDelete)    return null;
+
+  // ── Handler ───────────────────────────────────────────────────
   async function handleConfirm() {
     setError('');
     setLoading(true);
 
     const { error: apiError } = await softDeleteProduct(
       product.prodcode,
-      currentUser.userid
+      currentUser.userid        // ← now correctly sourced from useAuth()
     );
 
     setLoading(false);
@@ -44,6 +43,7 @@ if (!canDelete) return null;
     onSuccess();
   }
 
+  // ── Render ────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
@@ -56,7 +56,10 @@ if (!canDelete) return null;
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h3 className="text-base font-semibold text-gray-800">Delete Product</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+          >
             ×
           </button>
         </div>
@@ -70,7 +73,6 @@ if (!canDelete) return null;
             </div>
           )}
 
-          {/* Warning icon + message */}
           <div className="flex gap-3 items-start">
             <span className="text-2xl mt-0.5">⚠️</span>
             <div>
