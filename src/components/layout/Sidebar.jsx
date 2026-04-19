@@ -1,63 +1,85 @@
 // src/components/layout/Sidebar.jsx
+// Sprint 2 update: real rights-based and role-based gating replaces Sprint 1 placeholders.
+// All gated links use conditional rendering — absent from DOM when condition is false.
+// Project guide Section 8.8 (Deleted Items), Section 2.2 (rights matrix).
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth }   from '../../hooks/useAuth';
+import { useRights } from '../../hooks/useRights';
 
-// Reusable NavLink style — active link gets a blue left border + background
+const baseLink = 'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors';
+const activeStyle  = 'bg-blue-50 text-blue-700 border-l-4 border-blue-600';
+const inactiveStyle = 'text-gray-600 hover:bg-gray-100 hover:text-gray-900';
+
 const linkClass = ({ isActive }) =>
-  `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-    isActive
-      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-  }`;
+  `${baseLink} ${isActive ? activeStyle : inactiveStyle}`;
 
 export default function Sidebar() {
-  const { currentUser } = useAuth();
+  const { currentUser }   = useAuth();
+  const { rights, canManageUsers, canViewReports, canViewTopSelling } = useRights();
 
-  // ── Role-based visibility ────────────────────────────────────
-  // From project guide Section 8.8:
-  // "Deleted Items" is visible only to ADMIN and SUPERADMIN
-  const canViewDeleted =
-    currentUser &&
-    ['ADMIN', 'SUPERADMIN'].includes(currentUser.user_type);
+  const userType = currentUser?.user_type ?? 'USER';
 
-  // "Admin" link: gated by ADM_USER right — placeholder for now.
-  // M4 (S2-T13) will replace this with: rights.ADM_USER === 1
-  // from UserRightsContext once it is built in Sprint 2.
-  const canViewAdmin =
-    currentUser && currentUser.user_type === 'SUPERADMIN';
+  // ── Gate: Deleted Items ────────────────────────────────────────────
+  // Project guide Section 8.8: role-based gate — ADMIN and SUPERADMIN only.
+  // Uses user_type directly (not rights map) per prescribed implementation.
+  const canViewDeleted = ['ADMIN', 'SUPERADMIN'].includes(userType);
+
+  // ── Gate: Admin ────────────────────────────────────────────────────
+  // Right-based: ADM_USER = 1 in UserModule_Rights (SUPERADMIN only per matrix).
+  // Replaces Sprint 1 placeholder: currentUser.user_type === 'SUPERADMIN'
+  const canViewAdmin = canManageUsers; // rights.ADM_USER === 1
+
+  // ── Gate: Reports (REP_001) ────────────────────────────────────────
+  // All three user types have REP_001 = 1 by default.
+  // Gated via rights map for future flexibility.
+  const canViewReportsList = canViewReports; // rights.REP_001 === 1
+
+  // ── Gate: Top Selling (REP_002) ────────────────────────────────────
+  // SUPERADMIN only per rights matrix (ADMIN = 0, USER = 0).
+  // Link hidden until Sprint 3 Reports page is built (S3-T03).
+  const canViewTopSellingSub = canViewTopSelling; // rights.REP_002 === 1
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-4 shrink-0">
-
+    <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-4 shrink-0 h-full">
       <nav className="flex flex-col gap-1 px-2">
 
-        {/* ── Always visible ── */}
+        {/* ── Products — always visible to all authenticated users ── */}
         <NavLink to="/products" className={linkClass}>
-          Products
+          📦 Products
         </NavLink>
 
-        <NavLink to="/reports" className={linkClass}>
-          Reports
-        </NavLink>
-
-        {/* ── Deleted Items — ADMIN and SUPERADMIN only ── */}
-        {/* Project guide Section 8.8 — exact gating rule */}
-        {canViewDeleted && (
-          <NavLink to="/deleted-items" className={linkClass}>
-            Deleted Items
+        {/* ── Reports — REP_001 = 1 (all user types by default) ── */}
+        {canViewReportsList && (
+          <NavLink to="/reports" className={linkClass}>
+            📊 Reports
           </NavLink>
         )}
 
-        {/* ── Admin — SUPERADMIN only in Sprint 1 placeholder ── */}
-        {/* TODO (M4 — S2-T13): replace canViewAdmin with rights.ADM_USER === 1 */}
+        {/* ── Top Selling — REP_002 = 1 (SUPERADMIN only) ── */}
+        {/* Absent from DOM for ADMIN and USER until Sprint 3 page is ready */}
+        {canViewTopSellingSub && (
+          <NavLink to="/reports/top-selling" className={linkClass}>
+            🏆 Top Selling
+          </NavLink>
+        )}
+
+        {/* ── Deleted Items — ADMIN and SUPERADMIN only ── */}
+        {/* Project guide Section 8.8: role-based gate */}
+        {canViewDeleted && (
+          <NavLink to="/deleted-items" className={linkClass}>
+            🗑 Deleted Items
+          </NavLink>
+        )}
+
+        {/* ── Admin — ADM_USER = 1 only (SUPERADMIN only per matrix) ── */}
+        {/* Right-based: replaces Sprint 1 placeholder (user_type === 'SUPERADMIN') */}
         {canViewAdmin && (
           <NavLink to="/admin" className={linkClass}>
-            Admin
+            ⚙ Admin
           </NavLink>
         )}
 
       </nav>
-
     </aside>
   );
 }
