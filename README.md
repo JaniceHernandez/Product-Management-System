@@ -1,6 +1,10 @@
 # Hope, Inc. — Product Management System
 
+<<<<<<< HEAD
 **BS Computer Science Capstone Project**
+=======
+*BS Computer Science Capstone Project*
+>>>>>>> dev
 New Era University | College of Computer Studies | AY 2025–2026
 Software Engineering 2 | Instructor: Jeremias C. Esperanza
 
@@ -35,10 +39,17 @@ Software Engineering 2 | Instructor: Jeremias C. Esperanza
 
 ## Authentication
 
+<<<<<<< HEAD
 **Google OAuth is the only sign-in method.** There is no email/password registration.
 
 New users who sign in with Google are automatically provisioned as `USER / INACTIVE`
 by the `provision_new_user()` trigger. A SUPERADMIN or ADMIN must activate the account
+=======
+*Google OAuth is the only sign-in method.* There is no email/password registration.
+
+New users who sign in with Google are automatically provisioned as USER / INACTIVE
+by the provision_new_user() trigger. A SUPERADMIN or ADMIN must activate the account
+>>>>>>> dev
 before the user can access the application.
 
 ---
@@ -47,52 +58,89 @@ before the user can access the application.
 
 ### 1. Prerequisites
 
+<<<<<<< HEAD
 - Node.js v18 or higher — check with `node -v`
 - npm v9 or higher — check with `npm -v`
 - Git configured — `git config --global user.name` and `git config --global user.email`
+=======
+- Node.js v18 or higher — check with node -v
+- npm v9 or higher — check with npm -v
+- Git configured — git config --global user.name and git config --global user.email
+>>>>>>> dev
 
 ### 2. Clone the repository
 
 ```bash
 git clone git@github.com:<your-org>/hope-pms.git
 cd hope-pms
+<<<<<<< HEAD
 
+=======
+```
+>>>>>>> dev
 
 ### 3. Install dependencies
 
 ```bash
 npm install
+<<<<<<< HEAD
 
+=======
+```
+>>>>>>> dev
 
 ### 4. Set up environment variables
 
 ```bash
 cp .env.example .env
+<<<<<<< HEAD
 
 
 Open `.env` and fill in the Supabase credentials (get from Angela, M3):
+=======
+```
+
+Open .env and fill in the Supabase credentials (get from Angela, M3):
+>>>>>>> dev
 
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
 VITE_APP_NAME=Hope PMS
+<<<<<<< HEAD
 
 
 > **Never commit `.env`.** It is gitignored. Share actual values only via secure channel.
+=======
+```
+
+**Never commit `.env`.** It is gitignored. Share actual values only via secure channel.
+
+>>>>>>> dev
 
 ### 5. Start the development server
 
 ```bash
 npm run dev
+<<<<<<< HEAD
 
 
 Open `http://localhost:5173`. You will be redirected to `/login`. Sign in with your Google account.
+=======
+```
+
+Open http://localhost:5173. You will be redirected to /login. Sign in with your Google account.
+>>>>>>> dev
 
 ### 6. Run tests
 
 ```bash
 npm test
+<<<<<<< HEAD
 
+=======
+```
+>>>>>>> dev
 
 ---
 
@@ -100,6 +148,7 @@ npm test
 
 | Branch | Purpose |
 |---|---|
+<<<<<<< HEAD
 | `main` | Production-only. Never push directly. |
 | `dev` | Integration branch. Always stable. Pull before starting any task. |
 | `feat/*` | New features |
@@ -113,11 +162,30 @@ npm test
 **All changes go through Pull Requests. Never push directly to `main` or `dev`.**
 
 Flow: `feature/task` → PR → `dev` → sprint release PR → `main`
+=======
+| main | Production-only. Never push directly. |
+| dev | Integration branch. Always stable. Pull before starting any task. |
+| feat/* | New features |
+| fix/* | Bug fixes |
+| db/* | Database / migration changes |
+| test/* | Test files |
+| docs/* | Documentation |
+| refactor/* | Code cleanup |
+| chore/* | Config, tooling |
+
+**All changes go through Pull Requests. Never push directly to main or dev.**
+
+Flow: feature/task → PR → dev → sprint release PR → main
+>>>>>>> dev
 
 ---
 
 ## Project Structure
+<<<<<<< HEAD
 
+=======
+```
+>>>>>>> dev
 hope-pms/
 ├── db/
 │   └── migrations/        SQL migration files (001–009 after Sprint 1)
@@ -137,7 +205,11 @@ hope-pms/
     ├── pages/             One component per route
     ├── services/          Supabase service functions (Sprint 2)
     └── utils/             Helper functions (Sprint 2)
+<<<<<<< HEAD
 
+=======
+```
+>>>>>>> dev
 
 ---
 
