@@ -1,7 +1,7 @@
 # Sprint 2 Rights Test Matrix
 
 **Tester:** Angel Florendo (M5 — QA / Documentation)
-**Date:** April 20, 2025
+**Date:** April 20, 2026
 **Branch tested:** dev
 **Environment:** Local — http://localhost:5173
 **Screenshot folder:** `docs/test-logs/screenshots/`
