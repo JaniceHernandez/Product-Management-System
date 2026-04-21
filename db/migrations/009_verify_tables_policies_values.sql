@@ -1,13 +1,13 @@
 -- Step 1: Delete dependent records
 DELETE FROM usermodule_rights
-WHERE userid IN ('36549b70-119e-41ab-83e0-d01444532682', '9575e942-3cdf-4eeb-9db2-61aed85b1475', '4f354d1a-a7a2-4bf8-98b6-f9104e22ce46', 'a7a170ce-3a70-49b3-b3d5-21e0da369998');
+WHERE userid IN ('UUID', 'UUID', 'UUID', 'UUID');
 
 DELETE FROM user_module
-WHERE userid IN ('36549b70-119e-41ab-83e0-d01444532682', '9575e942-3cdf-4eeb-9db2-61aed85b1475', '4f354d1a-a7a2-4bf8-98b6-f9104e22ce46', 'a7a170ce-3a70-49b3-b3d5-21e0da369998');
+WHERE userid IN ('UUID', 'UUID', 'UUID', 'UUID');
 
 -- Step 2: Delete the user
 DELETE FROM public.user
-WHERE userid IN ('36549b70-119e-41ab-83e0-d01444532682', '9575e942-3cdf-4eeb-9db2-61aed85b1475', '4f354d1a-a7a2-4bf8-98b6-f9104e22ce46', 'a7a170ce-3a70-49b3-b3d5-21e0da369998');
+WHERE userid IN ('UUID', 'UUID', 'UUID', 'UUID');
 
 -- Check all users-----------------
 SELECT *
