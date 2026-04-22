@@ -1,0 +1,27 @@
+=== SPRINT 3 FINAL RLS AUDIT ===
+Date: Tue Apr 21 17:50:13 UTC 2026
+
+=== .delete() in src/ ===
+
+=== DELETE FROM in db/migrations/ ===
+db/migrations/009_verify_tables_policies_values.sql:2:DELETE FROM usermodule_rights
+db/migrations/009_verify_tables_policies_values.sql:5:DELETE FROM user_module
+db/migrations/009_verify_tables_policies_values.sql:9:DELETE FROM public.user
+
+=== AUDIT COMPLETE ===
+
+=== AUDIT FINDINGS ===
+
+1. .delete() in src/: 0 violations — CLEAN ✅
+
+2. DELETE FROM in db/migrations/:
+   Found in: 009_verify_tables_policies_values.sql
+   Verdict: ACCEPTABLE ✅
+   Reason: Uses placeholder 'UUID' values — this is a Sprint 1
+   dev/verification cleanup script, not a production hard delete.
+   No real data rows are targeted.
+
+3. Dev-mode bypass policies: 0 remaining ✅
+   (temp_allow_all_user and temp_allow_all_user_module removed in Step 4)
+
+=== FINAL VERDICT: AUDIT PASSED — 0 VIOLATIONS ===
