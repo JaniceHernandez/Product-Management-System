@@ -9,6 +9,7 @@ import AdminPage        from './pages/AdminPage';
 import DeletedItemsPage from './pages/DeletedItemsPage';
 import ProductReportPage from './pages/ProductReportPage';
 import TopSellingPage    from './pages/TopSellingPage';
+import UserManagementPage from './pages/UserManagementPage';
 import AppLayout        from './components/layout/AppLayout';
 import ProtectedRoute   from './components/ProtectedRoute';
 import RoleRoute        from './components/RoleRoute';
@@ -44,7 +45,7 @@ export default function App() {
 
       <Route path="/admin" element={
         <ProtectedRoute>
-          <AppLayout><AdminPage /></AppLayout>
+          <AppLayout><UserManagementPage /></AppLayout>
         </ProtectedRoute>
       } />
 
