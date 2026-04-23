@@ -7,6 +7,8 @@ import ProductsPage     from './pages/ProductsPage';
 import ReportsPage      from './pages/ReportsPage';
 import AdminPage        from './pages/AdminPage';
 import DeletedItemsPage from './pages/DeletedItemsPage';
+import ProductReportPage from './pages/ProductReportPage';
+import TopSellingPage    from './pages/TopSellingPage';
 import AppLayout        from './components/layout/AppLayout';
 import ProtectedRoute   from './components/ProtectedRoute';
 import RoleRoute        from './components/RoleRoute';
@@ -30,7 +32,13 @@ export default function App() {
 
       <Route path="/reports" element={
         <ProtectedRoute>
-          <AppLayout><ReportsPage /></AppLayout>
+          <AppLayout><ProductReportPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/top-selling" element={
+        <ProtectedRoute>
+          <AppLayout><TopSellingPage /></AppLayout>
         </ProtectedRoute>
       } />
 
