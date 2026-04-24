@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useAuth }       from '../hooks/useAuth';
 import { useRights }     from '../hooks/useRights';
 import { getAllUsers, activateUser, deactivateUser } from '../services/userService';
+import { useSuperAdminGuard } from '../hooks/useSuperAdminGuard';
 
 // Badge component for record_status
 function StatusBadge({ status }) {
@@ -71,10 +72,10 @@ export default function UserManagementPage() {
 
   // SUPERADMIN protection check — project guide Section 7.2
   // All buttons on SUPERADMIN rows are disabled regardless of actor.
-  const isSuperAdmin = (targetUser) => targetUser.user_type === 'SUPERADMIN';
+  const { isProtectedRow, getTooltip, getRowClass } = useSuperAdminGuard();
 
   async function handleActivate(user) {
-    if (isSuperAdmin(user)) return; // safety guard — should never reach here due to disabled button
+    if (isProtectedRow(user)) return;
 
     setActionError('');
     setSuccessMsg('');
@@ -102,7 +103,7 @@ export default function UserManagementPage() {
   }
 
   async function handleDeactivate(user) {
-    if (isSuperAdmin(user)) return;
+    if (isProtectedRow(user)) return;
 
     setActionError('');
     setSuccessMsg('');
@@ -203,7 +204,7 @@ export default function UserManagementPage() {
 
               <tbody className="divide-y divide-gray-100">
                 {sorted.map(user => {
-                  const superadminRow = isSuperAdmin(user);
+                  const superadminRow = isProtectedRow(user);
                   const isCurrentUser = user.userid === currentUser?.userid;
                   const isUpdating    = actionId === user.userid;
                   const isActive      = user.record_status === 'ACTIVE';
@@ -211,7 +212,7 @@ export default function UserManagementPage() {
                   return (
                     <tr
                       key={user.userid}
-                      className={`transition-colors ${superadminRow ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
+                      className={getRowClass(user)}
                     >
                       {/* Username */}
                       <td className="px-4 py-3">
@@ -250,7 +251,7 @@ export default function UserManagementPage() {
                           {/* Activate button */}
                           {/* Disabled for SUPERADMIN rows (project guide Section 7.2) */}
                           <div
-                            title={superadminRow ? 'SUPERADMIN accounts cannot be modified' : ''}
+                            title={getTooltip(user)}
                             className="inline-block"
                           >
                             <button
@@ -268,7 +269,7 @@ export default function UserManagementPage() {
 
                           {/* Deactivate button */}
                           <div
-                            title={superadminRow ? 'SUPERADMIN accounts cannot be modified' : ''}
+                            title={getTooltip(user)}
                             className="inline-block"
                           >
                             <button
