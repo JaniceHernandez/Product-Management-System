@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth }             from '../hooks/useAuth';
 import { getDeletedProducts, recoverProduct } from '../services/productService';
+import { useStampVisibility } from '../hooks/useStampVisibility';
 
 export default function DeletedItemsPage() {
   const { currentUser } = useAuth();
+  const { showDeletedItemsStamp } = useStampVisibility();
 
   const [products,     setProducts]     = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -134,20 +136,24 @@ export default function DeletedItemsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Product Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Unit</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Stamp</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Code</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unit</th>
+                  {showDeletedItemsStamp && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stamp</th>
+                  )}
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {products.map(product => (
-                  <tr key={product.prodcode} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium text-gray-800">{product.prodcode}</td>
+                  <tr key={product.prodcode}>
+                    <td className="px-4 py-3 font-mono text-gray-800">{product.prodcode}</td>
                     <td className="px-4 py-3 text-gray-700">{product.description}</td>
                     <td className="px-4 py-3 text-gray-500">{product.unit}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400 font-mono">{product.stamp ?? '—'}</td>
+                    {showDeletedItemsStamp && (
+                      <td className="px-4 py-3 text-xs text-gray-400">{product.stamp ?? '—'}</td>
+                    )}
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleRecover(product)}

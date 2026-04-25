@@ -1,7 +1,7 @@
 // src/components/products/PriceHistoryPanel.jsx
 import { useProductRights } from '../../hooks/useProductRights';
 import { useState, useEffect } from 'react';
-
+import { useStampVisibility } from '../../hooks/useStampVisibility';
 import { getPriceHistory }   from '../../services/priceHistService';
 import AddPriceEntryForm     from './AddPriceEntryForm';
 
@@ -18,7 +18,8 @@ export default function PriceHistoryPanel({ prodcode, isOpen}) {
   const [error,    setError]    = useState('');
 
   // Stamp visibility: ADMIN sees pricehist stamps; SUPERADMIN sees all; USER never
-  const { showStamp } = useProductRights();
+  //const { showStamp } = useProductRights();
+  const { showPriceHistStamp } = useStampVisibility();
 
   // Fetch when panel opens
   useEffect(() => {
@@ -123,7 +124,7 @@ export default function PriceHistoryPanel({ prodcode, isOpen}) {
                 <th className="text-left pb-2 pr-4">Effective Date</th>
                 <th className="text-right pb-2 pr-4">Unit Price</th>
                 {/* Stamp — absent from DOM for USER */}
-                {showStamp && (
+                {showPriceHistStamp && (
                   <th className="text-left pb-2 pr-4">Stamp</th>
                 )}
                 <th className="text-left pb-2">Status</th>
@@ -144,7 +145,7 @@ export default function PriceHistoryPanel({ prodcode, isOpen}) {
                       {formatPrice(entry.unitprice)}
                     </td>
                     {/* Stamp — absent from DOM for USER (project guide Section 9.3) */}
-                    {showStamp && (
+                    {showPriceHistStamp && (
                       <td className="py-1 pr-4 font-mono text-blue-400">
                         {entry.stamp ?? '—'}
                       </td>
