@@ -9,6 +9,7 @@ import { useRights }     from '../hooks/useRights';
 import { getAllUsers, activateUser, deactivateUser } from '../services/userService';
 import { useSuperAdminGuard } from '../hooks/useSuperAdminGuard';
 import { changeUserRole }  from '../services/userService';
+import { useStampVisibility } from '../hooks/useStampVisibility';
 import ChangeRoleModal     from '../components/admin/ChangeRoleModal';
 
 
@@ -45,6 +46,7 @@ function TypeBadge({ userType }) {
 export default function UserManagementPage() {
   const { currentUser }     = useAuth();
   const { canManageUsers }  = useRights();
+  const { showUserStamp } = useStampVisibility();
 
   const [users,      setUsers]      = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -227,11 +229,14 @@ export default function UserManagementPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Username</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Email / ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Username</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email / ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  {showUserStamp && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stamp</th>
+                  )}
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
 
@@ -276,6 +281,13 @@ export default function UserManagementPage() {
                       <td className="px-4 py-3">
                         <StatusBadge status={user.record_status} />
                       </td>
+                      {showUserStamp && (
+                        <td className="px-4 py-3 text-xs text-gray-400 font-mono max-w-[200px]">
+                          <span className="block truncate" title={user.stamp ?? ''}>
+                            {user.stamp ?? '—'}
+                          </span>
+                        </td>
+                      )}
 
                       {/* Actions */}
                       <td className="px-4 py-3">

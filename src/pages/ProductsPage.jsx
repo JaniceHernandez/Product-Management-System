@@ -1,5 +1,6 @@
 // src/pages/ProductsPage.jsx
 import { useProductRights } from '../hooks/useProductRights';
+import { useStampVisibility } from '../hooks/useStampVisibility';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import PriceHistoryPanel        from '../components/products/PriceHistoryPanel';
 
@@ -28,7 +29,8 @@ function SortTh({ field, label, sortField, sortDirection, onSort }) {
 }
 
 export default function ProductsPage() {
-  
+  const { canAdd, canEdit, canDelete, showStamp, currentUser, userType } = useProductRights();
+  const { showProductStamp } = useStampVisibility();
 
   // ── Data ─────────────────────────────────────────────────────
   const [products,  setProducts]  = useState([]);
@@ -50,7 +52,6 @@ export default function ProductsPage() {
     setExpandedProdcode(prev => prev === prodcode ? null : prodcode);
   }
 
- const { canAdd, canEdit, canDelete, showStamp, currentUser, userType } = useProductRights();
   // ── Fetch ─────────────────────────────────────────────────────
   async function fetchData() {
     setLoading(true);
@@ -222,7 +223,7 @@ export default function ProductsPage() {
                   <SortTh field="description" label="Description"   sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                   <SortTh field="unit"        label="Unit"          sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                   <SortTh field="unitprice"   label="Current Price" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-                  {showStamp && (
+                  {showProductStamp && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                       Stamp
                     </th>
@@ -250,7 +251,7 @@ export default function ProductsPage() {
                         {formatPrice(product.prodcode)}
                       </td>
 
-                      {showStamp && (
+                      {showProductStamp && (
                         <td className="px-4 py-3 text-xs text-gray-400 font-mono">
                           {product.stamp ?? '—'}
                         </td>
@@ -296,7 +297,7 @@ export default function ProductsPage() {
                       <tr>
                         <td
                           colSpan={
-                            4 + (showStamp ? 1 : 0) + ((canEdit || canDelete) ? 1 : 0)
+                            4 + (showProductStamp ? 1 : 0) + ((canEdit || canDelete) ? 1 : 0)
                           }
                           className="p-0"
                         >

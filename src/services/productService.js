@@ -190,7 +190,7 @@ export async function recoverProduct(prodcode, userId) {
 export async function getDeletedProducts() {
   const { data, error } = await supabase
     .from('product')
-    .select('prodcode, description, unit, stamp')
+    .select('prodcode, description, unit, record_status, stamp')  // ADD stamp
     .eq('record_status', 'INACTIVE')
     .order('prodcode');
 
