@@ -8,6 +8,9 @@ import { useAuth }       from '../hooks/useAuth';
 import { useRights }     from '../hooks/useRights';
 import { getAllUsers, activateUser, deactivateUser } from '../services/userService';
 import { useSuperAdminGuard } from '../hooks/useSuperAdminGuard';
+import { changeUserRole }  from '../services/userService';
+import ChangeRoleModal     from '../components/admin/ChangeRoleModal';
+
 
 // Badge component for record_status
 function StatusBadge({ status }) {
@@ -49,6 +52,8 @@ export default function UserManagementPage() {
   const [actionId,   setActionId]   = useState(null);   // userid currently being updated
   const [actionError, setActionError] = useState('');
   const [successMsg,  setSuccessMsg]  = useState('');
+  const [roleModalUser, setRoleModalUser] = useState(null); // user row being edited
+
 
   useEffect(() => {
     fetchUsers();
@@ -127,6 +132,34 @@ export default function UserManagementPage() {
     );
     setSuccessMsg(`"${user.username}" has been deactivated and cannot sign in until reactivated.`);
     setTimeout(() => setSuccessMsg(''), 4000);
+  }
+
+    async function handleRoleChange(newRole) {
+    if (!roleModalUser) return;
+    setActionError('');
+    setSuccessMsg('');
+
+    const { error: roleErr } = await changeUserRole(
+      roleModalUser.userid,
+      newRole,
+      currentUser.userid
+    );
+
+    if (roleErr) {
+      setActionError(roleErr.message ?? 'Failed to change role. Please try again.');
+      setRoleModalUser(null);
+      return;
+    }
+
+    // Optimistic update — update user_type in local state
+    setUsers(prev =>
+      prev.map(u => u.userid === roleModalUser.userid ? { ...u, user_type: newRole } : u)
+    );
+    setSuccessMsg(
+      `"${roleModalUser.username ?? roleModalUser.userid}" role changed to ${newRole}.
+      Their rights have been reset to the ${newRole} defaults.`
+    );
+    setRoleModalUser(null);
   }
 
   // Sort: SUPERADMIN first, then ADMIN, then USER; within each type by username
@@ -285,6 +318,19 @@ export default function UserManagementPage() {
                             </button>
                           </div>
 
+                          {/* Change Role button — SUPERADMIN only; hidden for SUPERADMIN target rows */}
+                          {!isProtectedRow(user) && (
+                            <div className="inline-block" title="">
+                              <button
+                                onClick={() => setRoleModalUser(user)}
+                                disabled={isUpdating}
+                                className="text-xs font-medium px-3 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 hover:text-purple-800 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
+                              >
+                                Change Role
+                              </button>
+                            </div>
+                          )}
+
                         </div>
                       </td>
                     </tr>
@@ -300,6 +346,15 @@ export default function UserManagementPage() {
             {sorted.filter(u => u.record_status === 'INACTIVE').length} inactive
           </div>
         </div>
+      )}
+
+      {/* Change Role Modal */}
+      {roleModalUser && (
+        <ChangeRoleModal
+          user={roleModalUser}
+          onClose={() => setRoleModalUser(null)}
+          onSuccess={handleRoleChange}
+        />
       )}
 
     </div>
