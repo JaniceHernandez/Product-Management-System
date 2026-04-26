@@ -17,20 +17,29 @@ import { ROLE_RIGHTS_DEFAULTS, ROLE_MODULE_DEFAULTS } from '../utils/roleDefault
 // US-26: SUPERADMIN changes a user's role and resets their rights
 
 // ── getAllUsers ────────────────────────────────────────────────
-// US-21, US-24: SUPERADMIN and ADMIN view all registered users.
+// Returns users scoped by the caller's role:
+//   SUPERADMIN → all users (all user_types)
+//   ADMIN      → only USER-type accounts
 //
-// Returns all rows from public.user ordered by user_type then username.
-// The RLS SELECT policy on public.user (USING true from migration 009)
-// allows all authenticated users to read user rows.
-// Stamp column included — visibility gated in the UI by user_type.
+// The RLS SELECT policy (023_add_user_email.sql) enforces the same
+// scoping at the DB level. The callerUserType param adds an explicit
+// client-side filter as a second layer.
 //
+// @param {string} callerUserType - currentUser.user_type
 // @returns {{ data: Array, error: object|null }}
-export async function getAllUsers() {
-  const { data, error } = await supabase
+export async function getAllUsers(callerUserType = 'SUPERADMIN') {
+  let query = supabase
     .from('user')
-    .select('userid, username, firstname, lastname, user_type, record_status, stamp')
+    .select('userid, username, firstname, lastname, email, user_type, record_status, stamp')
     .order('user_type')
     .order('username');
+
+  // ADMIN: only USER-type rows (RLS enforces this too — client filter is a safety net)
+  if (callerUserType === 'ADMIN') {
+    query = query.eq('user_type', 'USER');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('getAllUsers error:', error.message);

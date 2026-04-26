@@ -65,7 +65,7 @@ export default function UserManagementPage() {
     setLoading(true);
     setError('');
 
-    const { data, error: fetchError } = await getAllUsers();
+    const { data, error: fetchError } = await getAllUsers(currentUser?.user_type);
 
     if (fetchError) {
       setError('Failed to load users. Please try again.');
@@ -83,6 +83,7 @@ export default function UserManagementPage() {
 
   async function handleActivate(user) {
     if (isProtectedRow(user)) return;
+    if (currentUser?.user_type === 'ADMIN' && user.user_type !== 'USER') return;
 
     setActionError('');
     setSuccessMsg('');
@@ -111,6 +112,7 @@ export default function UserManagementPage() {
 
   async function handleDeactivate(user) {
     if (isProtectedRow(user)) return;
+    if (currentUser?.user_type === 'ADMIN' && user.user_type !== 'USER') return;
 
     setActionError('');
     setSuccessMsg('');
@@ -166,10 +168,14 @@ export default function UserManagementPage() {
 
   // Sort: SUPERADMIN first, then ADMIN, then USER; within each type by username
   const sorted = [...users].sort((a, b) => {
-    const typeOrder = { SUPERADMIN: 0, ADMIN: 1, USER: 2 };
-    const ta = typeOrder[a.user_type] ?? 3;
-    const tb = typeOrder[b.user_type] ?? 3;
-    if (ta !== tb) return ta - tb;
+    // For SUPERADMIN: sort by type order then username
+    // For ADMIN: all rows are USER type, sort by username only
+    if (currentUser?.user_type === 'SUPERADMIN') {
+      const typeOrder = { SUPERADMIN: 0, ADMIN: 1, USER: 2 };
+      const ta = typeOrder[a.user_type] ?? 3;
+      const tb = typeOrder[b.user_type] ?? 3;
+      if (ta !== tb) return ta - tb;
+    }
     return (a.username ?? '').localeCompare(b.username ?? '');
   });
 
@@ -180,8 +186,9 @@ export default function UserManagementPage() {
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-800">User Management</h2>
         <p className="text-sm text-gray-500 mt-0.5">
-          Manage user access. Activate new registrations or deactivate accounts.
-          SUPERADMIN accounts cannot be modified.
+          {currentUser?.user_type === 'SUPERADMIN'
+            ? 'Manage all user accounts. SUPERADMIN accounts cannot be modified.'
+            : 'Manage registered user accounts. Activate or deactivate USER accounts.'}
         </p>
       </div>
 
@@ -229,14 +236,14 @@ export default function UserManagementPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Username</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email / ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Username</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   {showUserStamp && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stamp</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Stamp</th>
                   )}
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
 
@@ -268,8 +275,8 @@ export default function UserManagementPage() {
                       </td>
 
                       {/* Email / userid */}
-                      <td className="px-4 py-3 text-xs text-gray-400 font-mono">
-                        {user.userid}
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {user.email ?? <span className="text-gray-300 italic">No email</span>}
                       </td>
 
                       {/* Role */}
