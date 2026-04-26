@@ -4,6 +4,7 @@
 
 import { supabase }  from '../lib/supabaseClient';
 import { makeStamp } from '../utils/stampHelper';
+import { logActivity } from './activityLogService';
 
 // ── getProducts ────────────────────────────────────────────────
 // US-08: Fetch the product list.
@@ -76,18 +77,12 @@ async function getProductsWithoutPrice(userType) {
 // @param {{ prodcode: string, description: string, unit: string }} product
 // @param {string} userId - currentUser.userid
 // @returns {{ data: object|null, error: object|null }}
-export async function addProduct({ prodcode, description, unit }, userId) {
-  const stamp = makeStamp('ADDED', userId);
+export async function addProduct(productData, currentUser) {
+  const stamp = makeStamp('ADDED');
 
   const { data, error } = await supabase
     .from('product')
-    .insert({
-      prodcode,
-      description,
-      unit,
-      record_status: 'ACTIVE',
-      stamp,
-    })
+    .insert({ ...productData, record_status: 'ACTIVE', stamp })
     .select()
     .single();
 
@@ -95,6 +90,17 @@ export async function addProduct({ prodcode, description, unit }, userId) {
     console.error('addProduct error:', error.message);
     return { data: null, error };
   }
+
+  // Log the activity after successful insert
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'PRODUCT_ADDED',
+    targetTable: 'product',
+    targetId:    productData.prodcode,
+    detail:      `Added product ${productData.prodcode} — ${productData.description ?? ''}`,
+  });
 
   return { data, error: null };
 }
@@ -109,8 +115,8 @@ export async function addProduct({ prodcode, description, unit }, userId) {
 // @param {{ description?: string, unit?: string }} updates
 // @param {string} userId - currentUser.userid
 // @returns {{ data: object|null, error: object|null }}
-export async function updateProduct(prodcode, updates, userId) {
-  const stamp = makeStamp('EDITED', userId);
+export async function updateProduct(prodcode, updates, currentUser) {
+  const stamp = makeStamp('EDITED');
 
   const { data, error } = await supabase
     .from('product')
@@ -123,6 +129,17 @@ export async function updateProduct(prodcode, updates, userId) {
     console.error('updateProduct error:', error.message);
     return { data: null, error };
   }
+
+  // Log the activity — was missing previously
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'PRODUCT_EDITED',
+    targetTable: 'product',
+    targetId:    prodcode,
+    detail:      `Edited product ${prodcode}`,
+  });
 
   return { data, error: null };
 }
@@ -138,8 +155,8 @@ export async function updateProduct(prodcode, updates, userId) {
 // @param {string} prodcode
 // @param {string} userId - currentUser.userid
 // @returns {{ error: object|null }}
-export async function softDeleteProduct(prodcode, userId) {
-  const stamp = makeStamp('DEACTIVATED', userId);
+export async function softDeleteProduct(prodcode, currentUser) {
+  const stamp = makeStamp('DEACTIVATED');
 
   const { error } = await supabase
     .from('product')
@@ -150,6 +167,16 @@ export async function softDeleteProduct(prodcode, userId) {
     console.error('softDeleteProduct error:', error.message);
     return { error };
   }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'PRODUCT_DELETED',
+    targetTable: 'product',
+    targetId:    prodcode,
+    detail:      `Soft-deleted product ${prodcode}`,
+  });
 
   return { error: null };
 }
@@ -165,8 +192,8 @@ export async function softDeleteProduct(prodcode, userId) {
 // @param {string} prodcode
 // @param {string} userId - currentUser.userid
 // @returns {{ error: object|null }}
-export async function recoverProduct(prodcode, userId) {
-  const stamp = makeStamp('REACTIVATED', userId);
+export async function recoverProduct(prodcode, currentUser) {
+  const stamp = makeStamp('REACTIVATED');
 
   const { error } = await supabase
     .from('product')
@@ -177,6 +204,16 @@ export async function recoverProduct(prodcode, userId) {
     console.error('recoverProduct error:', error.message);
     return { error };
   }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'PRODUCT_RECOVERED',
+    targetTable: 'product',
+    targetId:    prodcode,
+    detail:      `Recovered product ${prodcode}`,
+  });
 
   return { error: null };
 }

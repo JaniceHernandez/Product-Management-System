@@ -4,6 +4,7 @@
 
 import { supabase }  from '../lib/supabaseClient';
 import { makeStamp } from '../utils/stampHelper';
+import { logActivity } from './activityLogService';
 
 // ── getPriceHistory ────────────────────────────────────────────
 // US-15: Fetch all price history entries for a product.
@@ -46,7 +47,8 @@ export async function getPriceHistory(prodcode) {
 // @param {number} unitprice - Must be > 0 (enforced by DB CHECK constraint)
 // @param {string} userId    - currentUser.userid
 // @returns {{ data: object|null, error: object|null }}
-export async function addPriceEntry(prodcode, effdate, unitprice, userId) {
+export async function addPriceEntry(prodcode, effdate, unitprice, currentUser) {
+  const stamp = makeStamp('ADDED');
   // Validate unitprice before hitting the database
   if (!unitprice || Number(unitprice) <= 0) {
     return {
@@ -54,8 +56,6 @@ export async function addPriceEntry(prodcode, effdate, unitprice, userId) {
       error: { message: 'Unit price must be greater than 0.' },
     };
   }
-
-  const stamp = makeStamp('ADDED', userId);
 
   const { data, error } = await supabase
     .from('pricehist')
@@ -82,6 +82,16 @@ export async function addPriceEntry(prodcode, effdate, unitprice, userId) {
     console.error('addPriceEntry error:', error.message);
     return { data: null, error };
   }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'PRICE_ADDED',
+    targetTable: 'pricehist',
+    targetId:    prodcode,
+    detail:      `Added price ₱${unitprice} for ${prodcode} effective ${effdate}`,
+  });
 
   return { data, error: null };
 }
