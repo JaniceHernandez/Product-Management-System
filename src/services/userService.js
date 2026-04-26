@@ -11,6 +11,7 @@
 
 import { supabase }  from '../lib/supabaseClient';
 import { makeStamp } from '../utils/stampHelper';
+import { logActivity } from './activityLogService';
 import { ROLE_RIGHTS_DEFAULTS, ROLE_MODULE_DEFAULTS } from '../utils/roleDefaults';
 
 // ── changeUserRole ─────────────────────────────────────────────
@@ -60,8 +61,8 @@ export async function getAllUsers(callerUserType = 'SUPERADMIN') {
 // @param {string} userId - The userid of the account to activate
 // @param {string} actorId - currentUser.userid of the person performing the action
 // @returns {{ error: object|null }}
-export async function activateUser(userId, actorId) {
-  const stamp = makeStamp('ACTIVATED', actorId);
+export async function activateUser(userId, currentUser) {
+  const stamp = makeStamp('ACTIVATED');
 
   const { error } = await supabase
     .from('user')
@@ -72,6 +73,16 @@ export async function activateUser(userId, actorId) {
     console.error('activateUser error:', error.message);
     return { error };
   }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'USER_ACTIVATED',
+    targetTable: 'user',
+    targetId:    userId,
+    detail:      `Activated user account ${userId}`,
+  });
 
   return { error: null };
 }
@@ -89,8 +100,8 @@ export async function activateUser(userId, actorId) {
 // @param {string} userId - The userid of the account to deactivate
 // @param {string} actorId - currentUser.userid of the person performing the action
 // @returns {{ error: object|null }}
-export async function deactivateUser(userId, actorId) {
-  const stamp = makeStamp('DEACTIVATED', actorId);
+export async function deactivateUser(userId, currentUser) {
+  const stamp = makeStamp('DEACTIVATED');
 
   const { error } = await supabase
     .from('user')
@@ -101,6 +112,16 @@ export async function deactivateUser(userId, actorId) {
     console.error('deactivateUser error:', error.message);
     return { error };
   }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'USER_DEACTIVATED',
+    targetTable: 'user',
+    targetId:    userId,
+    detail:      `Deactivated user account ${userId}`,
+  });
 
   return { error: null };
 }
@@ -124,14 +145,14 @@ export async function deactivateUser(userId, actorId) {
 // @param {string} newRole - 'ADMIN' or 'USER'
 // @param {string} actorId - currentUser.userid of SUPERADMIN performing the action
 // @returns {{ error: object|null }}
-export async function changeUserRole(targetUserId, newRole, actorId) {
+export async function changeUserRole(targetUserId, newRole, currentUser) {
   if (!['ADMIN', 'USER'].includes(newRole)) {
     return { error: { message: 'Invalid role. Must be ADMIN or USER.' } };
   }
 
   const rightDefaults  = ROLE_RIGHTS_DEFAULTS[newRole];
   const moduleDefaults = ROLE_MODULE_DEFAULTS[newRole];
-  const stamp          = makeStamp('ROLE_CHANGED', actorId);
+  const stamp          = makeStamp('ROLE_CHANGED');
 
   // ── Step 1: Update user_type ────────────────────────────────
   const { error: userError } = await supabase
@@ -186,6 +207,16 @@ export async function changeUserRole(targetUserId, newRole, actorId) {
       },
     };
   }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'ROLE_CHANGED',
+    targetTable: 'user',
+    targetId:    targetUserId,
+    detail:      `Changed role to ${newRole} for user ${targetUserId}`,
+  });
 
   return { error: null };
 }

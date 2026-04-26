@@ -13,6 +13,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import AppLayout        from './components/layout/AppLayout';
 import ProtectedRoute   from './components/ProtectedRoute';
 import RoleRoute        from './components/RoleRoute';
+import ActivityLogPage from './pages/ActivityLogPage';
 
 export default function App() {
   return (
@@ -57,6 +58,15 @@ export default function App() {
           </RoleRoute>
         </ProtectedRoute>
       } />
+
+      <Route path="/activity-log" element={
+        <ProtectedRoute>
+          <AppLayout>
+            <ActivityLogPage />
+          </AppLayout>
+        </ProtectedRoute>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

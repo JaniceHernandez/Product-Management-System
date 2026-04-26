@@ -2,6 +2,7 @@
 // ENHANCED VERSION: Explicit duplicate prevention, race condition protection
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { logActivity } from '../services/activityLogService';
 
 const AuthContext = createContext(null);
 
@@ -201,7 +202,9 @@ export function AuthProvider({ children }) {
       if (existsResult.exists && existsResult.data) {
         // User found — use existing data
         console.log('[Auth] ✓ Using existing user data');
-        setCurrentUser(buildCurrentUser(existsResult.data, email));
+        const profile = buildCurrentUser(existsResult.data, email); // ← extract to variable
+        setCurrentUser(profile);
+        logSignIn(profile);      
         return;  // Early exit — no provisioning
       }
 
@@ -232,7 +235,9 @@ export function AuthProvider({ children }) {
 
       if (rereadResult.exists && rereadResult.data) {
         console.log('[Auth] ✓ Provisioning successful, user data read back');
-        setCurrentUser(buildCurrentUser(rereadResult.data, email));
+        const profile = buildCurrentUser(rereadResult.data, email); // ← extract to variable
+        setCurrentUser(profile);
+        logSignIn(profile);                                          // ← ADD THIS LINE
         return;
       }
 
@@ -257,7 +262,35 @@ export function AuthProvider({ children }) {
     };
   }
 
+  // ── logSignIn ──────────────────────────────────────────────
+  // Called after a user profile is confirmed ACTIVE and set into state.
+  // Separated so it never blocks the auth flow — fire and forget.
+  function logSignIn(profile) {
+    if (!profile || profile.record_status !== 'ACTIVE') return;
+    logActivity({
+      actorId:     profile.userid,
+      actorEmail:  profile.email,
+      actorRole:   profile.user_type,
+      action:      'USER_SIGNED_IN',
+      targetTable: 'user',
+      targetId:    profile.userid,
+      detail:      `${profile.username ?? profile.email} signed in`,
+    });
+  }
+
   async function signOut() {
+
+    if (currentUser) {
+      await logActivity({
+        actorId:     currentUser.userid,
+        actorEmail:  currentUser.email,
+        actorRole:   currentUser.user_type,
+        action:      'USER_SIGNED_OUT',
+        targetTable: 'user',
+        targetId:    currentUser.userid,
+        detail:      `${currentUser.username ?? currentUser.email} signed out`,
+      });
+    }
     setAuthError('');
     setCurrentUser(null);
     await supabase.auth.signOut();
