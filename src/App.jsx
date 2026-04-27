@@ -14,6 +14,7 @@ import AppLayout        from './components/layout/AppLayout';
 import ProtectedRoute   from './components/ProtectedRoute';
 import RoleRoute        from './components/RoleRoute';
 import ActivityLogPage from './pages/ActivityLogPage';
+import DashboardPage from './pages/DashboardPage';
 
 export default function App() {
   return (
@@ -26,6 +27,12 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       {/* Protected — session required */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <AppLayout><DashboardPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+
       <Route path="/products" element={
         <ProtectedRoute>
           <AppLayout><ProductsPage /></AppLayout>
@@ -61,9 +68,7 @@ export default function App() {
 
       <Route path="/activity-log" element={
         <ProtectedRoute>
-          <AppLayout>
-            <ActivityLogPage />
-          </AppLayout>
+          <AppLayout><ActivityLogPage /></AppLayout>
         </ProtectedRoute>
         }
       />

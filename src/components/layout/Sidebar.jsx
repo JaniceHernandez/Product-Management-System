@@ -25,6 +25,12 @@ export default function Sidebar() {
     <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-4 shrink-0 h-full">
       <nav className="flex flex-col gap-1 px-2">
 
+        {isAdminOrAbove && (
+        <NavLink to="/dashboard" className={linkClass}>
+          🏠 Dashboard
+        </NavLink>
+        )}
+
         {/* Products — always visible */}
         <NavLink to="/products" className={linkClass}>
           📦 Products
