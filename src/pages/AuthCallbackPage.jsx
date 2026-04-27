@@ -23,7 +23,11 @@ export default function AuthCallbackPage() {
 
     // Case 1: Profile loaded, explicitly ACTIVE → go to app
     if (currentUser && currentUser.record_status === 'ACTIVE') {
-      navigate('/products', { replace: true });
+      const destination =
+        ['ADMIN', 'SUPERADMIN'].includes(currentUser.user_type)
+          ? '/dashboard'
+          : '/products';
+      navigate(destination, { replace: true });
       return;
     }
 
