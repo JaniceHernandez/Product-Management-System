@@ -30,7 +30,7 @@ export default function SoftDeleteConfirmDialog({ product, onClose, onSuccess })
 
     const { error: apiError } = await softDeleteProduct(
       product.prodcode,
-      currentUser.userid        // ← now correctly sourced from useAuth()
+      currentUser      // ← now correctly sourced from useAuth()
     );
 
     setLoading(false);

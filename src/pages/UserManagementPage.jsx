@@ -89,7 +89,7 @@ export default function UserManagementPage() {
     setSuccessMsg('');
     setActionId(user.userid);
 
-    const { error: activateErr } = await activateUser(user.userid, currentUser.userid);
+    const { error: activateErr } = await activateUser(user.userid, currentUser);
 
     setActionId(null);
 
@@ -146,7 +146,7 @@ export default function UserManagementPage() {
     const { error: roleErr } = await changeUserRole(
       roleModalUser.userid,
       newRole,
-      currentUser.userid
+      currentUser
     );
 
     if (roleErr) {
