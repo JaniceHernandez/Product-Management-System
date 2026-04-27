@@ -72,7 +72,7 @@ if (!canAdd) return null;
         description: description.trim(),
         unit,
       },
-      currentUser.userid
+      currentUser
     );
 
     setLoading(false);

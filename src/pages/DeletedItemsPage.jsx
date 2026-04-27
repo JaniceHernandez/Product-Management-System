@@ -59,7 +59,7 @@ export default function DeletedItemsPage() {
 
     const { error: recoverErr } = await recoverProduct(
       product.prodcode,
-      currentUser.userid
+      currentUser
     );
 
     setRecovering(null);

@@ -52,7 +52,7 @@ export default function AddPriceEntryForm({ prodcode, onSuccess }) {
       prodcode,
       effdate,
       Number(unitprice),
-      currentUser.userid
+      currentUser
     );
 
     setLoading(false);

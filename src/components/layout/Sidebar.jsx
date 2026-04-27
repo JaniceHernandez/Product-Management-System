@@ -58,12 +58,10 @@ export default function Sidebar() {
           </NavLink>
         )}
 
-        {/* Activity Log — ADMIN and SUPERADMIN */}
-        {isAdminOrAbove && (
-          <NavLink to="/activity-log" className={linkClass}>
-            📋 Activity Log
-          </NavLink>
-        )}
+        {/* Activity Log — all authenticated users */}
+        <NavLink to="/activity-log" className={linkClass}>
+          📋 Activity Log
+        </NavLink>
 
       </nav>
     </aside>

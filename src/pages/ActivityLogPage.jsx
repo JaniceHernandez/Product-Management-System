@@ -44,6 +44,7 @@ export default function ActivityLogPage() {
   const { currentUser } = useAuth();
   const isSuperAdmin    = currentUser?.user_type === 'SUPERADMIN';
   const isAdmin         = currentUser?.user_type === 'ADMIN';
+  const isUser          = currentUser?.user_type === 'USER';
 
   const [logs,    setLogs]    = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,15 +67,6 @@ export default function ActivityLogPage() {
     setLoading(false);
   }
 
-  // Access guard — USER should never reach this page, but defensive check
-  if (!isSuperAdmin && !isAdmin) {
-    return (
-      <div className="p-6 text-center text-gray-400">
-        <p>You do not have permission to view the activity log.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
 
@@ -84,7 +76,9 @@ export default function ActivityLogPage() {
         <p className="text-sm text-gray-500 mt-0.5">
           {isSuperAdmin
             ? 'All system activity across all users.'
-            : 'Your own activity in the system.'}
+            : isAdmin
+            ? 'Your activity and all product updates across the system.'
+            : 'Product activity across the system.'}
         </p>
       </div>
 
@@ -105,8 +99,8 @@ export default function ActivityLogPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Time</th>
-                  {/* User column — SUPERADMIN only */}
-                  {isSuperAdmin && (
+                  {/* User column — SUPERADMIN and ADMIN */}
+                  {(isSuperAdmin || isAdmin) && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
                   )}
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
@@ -120,18 +114,18 @@ export default function ActivityLogPage() {
                     <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                       {formatDate(log.created_at)}
                     </td>
-                    {isSuperAdmin && (
-                      <td className="px-4 py-3">
-                        <p className="text-sm text-gray-700">{log.actor_email ?? log.actor_id}</p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                          log.actor_role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-600'
-                            : log.actor_role === 'ADMIN'  ? 'bg-blue-100 text-blue-600'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          {log.actor_role}
-                        </span>
-                      </td>
-                    )}
+                    {(isSuperAdmin || isAdmin) && (
+                        <td className="px-4 py-3">
+                          <p className="text-sm text-gray-700">{log.actor_email ?? log.actor_id}</p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                            log.actor_role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-600'
+                              : log.actor_role === 'ADMIN'  ? 'bg-blue-100 text-blue-600'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {log.actor_role}
+                          </span>
+                        </td>
+                      )}
                     <td className="px-4 py-3">
                       <ActionBadge action={log.action} />
                     </td>
