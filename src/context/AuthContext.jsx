@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 // ENHANCED VERSION: Explicit duplicate prevention, race condition protection
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { logActivity } from '../services/activityLogService';
 
@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
   const [authError,   setAuthError]   = useState('');
 
   const loading = session === undefined;
+  const signInLoggedRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
@@ -266,35 +267,41 @@ export function AuthProvider({ children }) {
   // Called after a user profile is confirmed ACTIVE and set into state.
   // Separated so it never blocks the auth flow — fire and forget.
   function logSignIn(profile) {
-    if (!profile || profile.record_status !== 'ACTIVE') return;
-    logActivity({
-      actorId:     profile.userid,
-      actorEmail:  profile.email,
-      actorRole:   profile.user_type,
-      action:      'USER_SIGNED_IN',
+  if (!profile || profile.record_status !== 'ACTIVE') return;
+  if (signInLoggedRef.current) return;   // Already logged — skip duplicate
+
+  signInLoggedRef.current = true;        // Mark as logged for this session
+
+  logActivity({
+    actorId:     profile.userid,
+    actorEmail:  profile.email,
+    actorRole:   profile.user_type,
+    action:      'USER_SIGNED_IN',
+    targetTable: 'user',
+    targetId:    profile.userid,
+    detail:      `${profile.username ?? profile.email} signed in`,
+  });
+}
+
+  async function signOut() {
+  if (currentUser) {
+    await logActivity({
+      actorId:     currentUser.userid,
+      actorEmail:  currentUser.email,
+      actorRole:   currentUser.user_type,
+      action:      'USER_SIGNED_OUT',
       targetTable: 'user',
-      targetId:    profile.userid,
-      detail:      `${profile.username ?? profile.email} signed in`,
+      targetId:    currentUser.userid,
+      detail:      `${currentUser.username ?? currentUser.email} signed out`,
     });
   }
 
-  async function signOut() {
+  signInLoggedRef.current = false;   // ← ADD: reset so next login logs again
 
-    if (currentUser) {
-      await logActivity({
-        actorId:     currentUser.userid,
-        actorEmail:  currentUser.email,
-        actorRole:   currentUser.user_type,
-        action:      'USER_SIGNED_OUT',
-        targetTable: 'user',
-        targetId:    currentUser.userid,
-        detail:      `${currentUser.username ?? currentUser.email} signed out`,
-      });
-    }
-    setAuthError('');
-    setCurrentUser(null);
-    await supabase.auth.signOut();
-  }
+  setAuthError('');
+  setCurrentUser(null);
+  await supabase.auth.signOut();
+}
 
   const value = {
     session,

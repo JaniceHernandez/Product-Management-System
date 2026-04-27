@@ -118,7 +118,7 @@ export default function UserManagementPage() {
     setSuccessMsg('');
     setActionId(user.userid);
 
-    const { error: deactivateErr } = await deactivateUser(user.userid, currentUser.userid);
+    const { error: deactivateErr } = await deactivateUser(user.userid, currentUser);
 
     setActionId(null);
 
