@@ -150,25 +150,61 @@ export default function ProductsPage() {
     <div className="p-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
+      {/* Page title row */}
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Products</h2>
-          {!loading && (
-            <p className="text-sm text-gray-400 mt-0.5">
-              {displayed.length} product{displayed.length !== 1 ? 's' : ''}
-            </p>
-          )}
+          <h1 className="text-2xl font-bold text-gray-900">Product Catalogue</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Overseeing current inventory lifecycles and pricing structures.
+          </p>
         </div>
-
         {canAdd && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
           >
-            + Add Product
+            <span className="text-base leading-none">+</span>
+            Add Product
           </button>
         )}
       </div>
+
+      {/* Stats sub-bar — SUPERADMIN/ADMIN only */}
+      {!loading && displayed.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-6">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Total Stock</p>
+            <p className="text-2xl font-bold text-gray-800">
+              {displayed.length.toLocaleString()}
+            </p>
+          </div>
+          <div className="w-px h-10 bg-gray-200" />
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Live Price Records</p>
+            <p className="text-2xl font-bold text-gray-800">
+              {prices.size.toLocaleString()}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* SUPERADMIN soft-delete notice — US-15 / US-32 */}
+      {canDelete && (
+        <div className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Soft-delete is available to <strong>SUPERADMIN</strong> only.</span>
+          <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-amber-600">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            RESTRICTED
+          </span>
+        </div>
+      )}
+    </div>
 
       {/* Search */}
       <div className="mb-4">
