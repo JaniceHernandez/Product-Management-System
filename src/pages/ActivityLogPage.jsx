@@ -72,14 +72,18 @@ export default function ActivityLogPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Activity Log</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {isSuperAdmin
-            ? 'All system activity across all users.'
-            : isAdmin
-            ? 'Your activity and all product updates across the system.'
-            : 'Product activity across the system.'}
-        </p>
+        <div className="flex items-start justify-between">
+         <div>
+          <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {isSuperAdmin
+              ? 'All system activity across all users.'
+              : isAdmin
+              ? 'Your activity and all product updates across the system.'
+              : 'Product activity across the system.'}
+          </p>
+        </div>
+       </div>
       </div>
 
       {error   && <ErrorBanner message={error} onRetry={fetchLogs} />}

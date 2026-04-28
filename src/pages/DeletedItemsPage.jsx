@@ -84,11 +84,31 @@ export default function DeletedItemsPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Deleted Items</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Soft-deleted products. These are hidden from all users but not permanently removed.
-          Recover them to make them visible again.
+        {/* Breadcrumb */}
+        <p className="text-xs text-gray-400 font-medium mb-2">
+          Admin <span className="mx-1">›</span> Deleted Items
         </p>
+
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Archived Products</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Recover items removed by SUPERADMIN. Review the audit trail before restoration.
+            </p>
+          </div>
+        </div>
+
+        {/* Info strip */}
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          {!loading && products.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-600">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              {products.length} archived item{products.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Success flash */}
@@ -136,13 +156,13 @@ export default function DeletedItemsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unit</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Product ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Item Details</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Unit</th>
                   {showDeletedItemsStamp && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stamp</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Audit Stamp</th>
                   )}
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Operations</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
