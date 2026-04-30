@@ -99,10 +99,20 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8 text-center">
+      <div className="w-full max-w-sm">
+      {/* Brand header above the card */}
+      <div className="text-center mb-6">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 shadow-lg mb-3">
+          <span className="text-white text-xl font-bold">H</span>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900">HopePMS</h1>
+        <p className="text-sm text-gray-500 mt-1">Hope, Inc. — Product Management System</p>
+      </div>
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-1">Hope PMS</h1>
-        <p className="text-sm text-gray-500 mb-8">Sign in to continue</p>
+      {/* Card */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <h2 className="text-base font-semibold text-gray-800 mb-1">Welcome back</h2>
+        <p className="text-sm text-gray-400 mb-6">Sign in with your Google account to continue.</p>
 
         {displayError && (
           <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-left">
@@ -117,17 +127,19 @@ export default function LoginPage() {
 
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-xl text-sm transition-colors"
-        >
+          className="w-full flex items-center justify-center gap-3 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-xl text-sm transition-all shadow-sm">
           <img src="/google-icon.svg" alt="" className="w-5 h-5" />
-          Sign in with Google
+          Continue with Google
         </button>
 
-        <p className="mt-6 text-xs text-gray-400">
-          New accounts require administrator activation after first sign-in.
-        </p>
-
-      </div>
+          <p className="mt-5 text-xs text-gray-400 text-center">
+            New registrations require administrator activation.
+          </p>
+          <p className="mt-5 text-center text-xs text-gray-300">
+        Hope, Inc. · New Era University · AY 2025–2026
+      </p>
     </div>
+   </div>
+  </div>
   );
 }

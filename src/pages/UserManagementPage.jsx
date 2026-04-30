@@ -184,12 +184,16 @@ export default function UserManagementPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800">User Management</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {currentUser?.user_type === 'SUPERADMIN'
-            ? 'Manage all user accounts. SUPERADMIN accounts cannot be modified.'
-            : 'Manage registered user accounts. Activate or deactivate USER accounts.'}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {currentUser?.user_type === 'SUPERADMIN'
+                ? 'Oversee system access levels and operational status. SUPERADMIN accounts cannot be modified.'
+                : 'Manage registered user accounts. Activate or deactivate USER accounts.'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Success flash */}
@@ -315,7 +319,16 @@ export default function UserManagementPage() {
                                   : 'text-green-600 hover:bg-green-50 hover:text-green-800'
                               }`}
                             >
-                              {isUpdating ? '…' : 'Activate'}
+                              {isUpdating ? '…' : (
+                                <span className="flex items-center gap-1">
+                                  {superadminRow && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                  )}
+                                  Activate
+                                </span>
+                              )}
                             </button>
                           </div>
 
@@ -333,7 +346,16 @@ export default function UserManagementPage() {
                                   : 'text-red-500 hover:bg-red-50 hover:text-red-700'
                               }`}
                             >
-                              {isUpdating ? '…' : 'Deactivate'}
+                              {isUpdating ? '…' : (
+                                <span className="flex items-center gap-1">
+                                  {superadminRow && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                  )}
+                                  Deactivate
+                                </span>
+                              )}
                             </button>
                           </div>
 
