@@ -11,7 +11,7 @@ import { useSuperAdminGuard } from '../hooks/useSuperAdminGuard';
 import { changeUserRole }  from '../services/userService';
 import { useStampVisibility } from '../hooks/useStampVisibility';
 import ChangeRoleModal     from '../components/admin/ChangeRoleModal';
-
+import FeaturePermissionsPanel from '../components/admin/FeaturePermissionsPanel';
 
 // Badge component for record_status
 function StatusBadge({ status }) {
@@ -80,7 +80,7 @@ export default function UserManagementPage() {
   const [roleModalUser, setRoleModalUser] = useState(null); // user row being edited
   const [promoteConfirm, setPromoteConfirm] = useState(null);
   const [demoteConfirm,  setDemoteConfirm]  = useState(null);
-
+  const [permissionsUser, setPermissionsUser] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -375,6 +375,17 @@ export default function UserManagementPage() {
                             </button>
                           )}
 
+                          {/* Permissions button – shown for all rows except Seeded Superadmin */}
+                          {!user.is_seeded && (
+                            <button
+                              onClick={() => setPermissionsUser(user)}
+                              disabled={isUpdating || isSameLevelRestricted(user)}
+                              className="text-xs font-medium px-3 py-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 disabled:text-gray-300"
+                            >
+                              Permissions
+                            </button>
+                          )}
+
                         </div>
                       </td>
                     </tr>
@@ -401,6 +412,14 @@ export default function UserManagementPage() {
           onSuccess={handleRoleChange}
         />
       )}
+
+      {permissionsUser && (
+      <FeaturePermissionsPanel
+        targetUser={permissionsUser}
+        currentUser={currentUser}
+        onClose={() => setPermissionsUser(null)}
+      />
+    )}
 
     </div>
   );

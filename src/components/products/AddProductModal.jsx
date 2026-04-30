@@ -1,28 +1,34 @@
 // src/components/products/AddProductModal.jsx
-import { useProductRights } from '../../hooks/useProductRights';
 import { useState, useEffect } from 'react';
-import { addProduct }   from '../../services/productService';
+import { useAuth } from '../../hooks/useAuth';
+import { useProductRights } from '../../hooks/useProductRights';
+import { addProductWithPrice } from '../../services/productService';
 
 const UNIT_OPTIONS = ['pc', 'ea', 'mtr', 'pkg', 'ltr'];
 
-/**
- * @param {Function} onClose   - Called when modal is dismissed without action
- * @param {Function} onSuccess - Called after successful product creation
- */
 export default function AddProductModal({ onClose, onSuccess }) {
+  const { currentUser } = useAuth();
   const { canAdd, rightsLoading } = useProductRights();
 
-if (rightsLoading) return null;
-if (!canAdd) return null;
-
-  const [prodcode,    setProdcode]    = useState('');
+  // Product fields
+  const [prodcode, setProdcode] = useState('');
   const [description, setDescription] = useState('');
-  const [unit,        setUnit]        = useState('pc');
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState('');
+  const [unit, setUnit] = useState('pc');
+
+  // Price fields
+  const [unitprice, setUnitprice] = useState('');
+  const [effdate, setEffdate] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
-  // Close on Escape key
+  const today = new Date().toISOString().slice(0, 10);
+  useEffect(() => {
+    // Set default effective date to today
+    setEffdate(today);
+  }, []);
+
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape') onClose();
@@ -31,10 +37,13 @@ if (!canAdd) return null;
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  // ── Validation ─────────────────────────────────────────────
+  if (rightsLoading) return null;
+  if (!canAdd) return null;
+
   function validate() {
     const errors = {};
 
+    // Product validation
     if (!prodcode.trim()) {
       errors.prodcode = 'Product code is required.';
     } else if (!/^[A-Z]{2}\d{4}$/.test(prodcode.trim().toUpperCase())) {
@@ -51,10 +60,23 @@ if (!canAdd) return null;
       errors.unit = 'Select a valid unit.';
     }
 
+    // Price validation
+    const price = Number(unitprice);
+    if (!unitprice) {
+      errors.unitprice = 'Unit price is required.';
+    } else if (isNaN(price) || price <= 0) {
+      errors.unitprice = 'Unit price must be greater than 0.';
+    }
+
+    if (!effdate) {
+      errors.effdate = 'Effective date is required.';
+    } else if (effdate > today) {
+      errors.effdate = 'Effective date cannot be in the future.';
+    }
+
     return errors;
   }
 
-  // ── Submit ──────────────────────────────────────────────────
   async function handleSubmit() {
     setError('');
     const errors = validate();
@@ -66,12 +88,20 @@ if (!canAdd) return null;
     setFieldErrors({});
     setLoading(true);
 
-    const { error: apiError } = await addProduct(
-      {
-        prodcode:    prodcode.trim().toUpperCase(),
-        description: description.trim(),
-        unit,
-      },
+    const productData = {
+      prodcode: prodcode.trim().toUpperCase(),
+      description: description.trim(),
+      unit,
+    };
+
+    const priceData = {
+      effdate: effdate,
+      unitprice: Number(unitprice),
+    };
+
+    const { error: apiError } = await addProductWithPrice(
+      productData,
+      priceData,
       currentUser
     );
 
@@ -89,18 +119,17 @@ if (!canAdd) return null;
     onSuccess();
   }
 
-  // ── Render ──────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-md"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <h3 className="text-base font-semibold text-gray-800">Add Product</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">
             ×
@@ -109,7 +138,6 @@ if (!canAdd) return null;
 
         {/* Body */}
         <div className="px-6 py-5 space-y-4">
-
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {error}
@@ -119,7 +147,7 @@ if (!canAdd) return null;
           {/* Product Code */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Product Code
+              Product Code <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -134,13 +162,13 @@ if (!canAdd) return null;
             {fieldErrors.prodcode && (
               <p className="mt-1 text-xs text-red-600">{fieldErrors.prodcode}</p>
             )}
-            <p className="mt-1 text-xs text-gray-400">2 letters + 4 digits. Cannot be changed after saving.</p>
+            <p className="mt-1 text-xs text-gray-400">2 letters + 4 digits. Cannot be changed later.</p>
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              Description <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -161,7 +189,7 @@ if (!canAdd) return null;
           {/* Unit */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Unit
+              Unit <span className="text-red-500">*</span>
             </label>
             <select
               value={unit}
@@ -172,12 +200,52 @@ if (!canAdd) return null;
                 <option key={u} value={u}>{u}</option>
               ))}
             </select>
+            {fieldErrors.unit && <p className="mt-1 text-xs text-red-600">{fieldErrors.unit}</p>}
           </div>
 
+          {/* Separator */}
+          <hr className="my-2" />
+
+          {/* Initial Price – Effective Date */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Effective Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={effdate}
+                onChange={e => setEffdate(e.target.value)}
+                max={today}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  fieldErrors.effdate ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+              {fieldErrors.effdate && <p className="mt-1 text-xs text-red-600">{fieldErrors.effdate}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Unit Price (₱) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                value={unitprice}
+                onChange={e => setUnitprice(e.target.value)}
+                min="0.01"
+                step="0.01"
+                placeholder="0.00"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  fieldErrors.unitprice ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+              {fieldErrors.unitprice && <p className="mt-1 text-xs text-red-600">{fieldErrors.unitprice}</p>}
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 -mt-2">The first price entry will be recorded with this date.</p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 sticky bottom-0 bg-white">
           <button
             onClick={onClose}
             disabled={loading}

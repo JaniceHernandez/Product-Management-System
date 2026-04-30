@@ -260,3 +260,53 @@ export async function changeUserRole(targetUserId, newRole, currentUser) {
 
   return { error: null };
 }
+
+// ── getUserPermissions ─────────────────────────────────────────
+// Returns a flat map { right_id: value } for a target user.
+export async function getUserPermissions(targetUserId) {
+  const { data, error } = await supabase
+    .from('usermodule_rights')
+    .select('right_id, right_value')
+    .eq('userid', targetUserId);
+
+  if (error) {
+    console.error('getUserPermissions error:', error.message);
+    return { data: null, error };
+  }
+
+  const map = {};
+  for (const row of (data ?? [])) {
+    map[row.right_id] = row.right_value;
+  }
+  return { data: map, error: null };
+}
+
+// ── updateUserPermission ───────────────────────────────────────
+// Toggle a single permission for a target user.
+// RLS enforces actor‑level access at the DB layer.
+export async function updateUserPermission(targetUserId, rightId, newValue, currentUser) {
+  const stamp = makeStamp('PERMISSIONS_UPDATED');
+
+  const { error } = await supabase
+    .from('usermodule_rights')
+    .update({ right_value: newValue, stamp })
+    .eq('userid', targetUserId)
+    .eq('right_id', rightId);
+
+  if (error) {
+    console.error('updateUserPermission error:', error.message);
+    return { error };
+  }
+
+  await logActivity({
+    actorId:     currentUser.userid,
+    actorEmail:  currentUser.email,
+    actorRole:   currentUser.user_type,
+    action:      'PERMISSIONS_UPDATED',
+    targetTable: 'usermodule_rights',
+    targetId:    targetUserId,
+    detail:      `${rightId} set to ${newValue === 1 ? 'ALLOWED' : 'BLOCKED'}`,
+  });
+
+  return { error: null };
+}
