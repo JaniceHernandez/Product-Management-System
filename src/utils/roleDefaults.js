@@ -4,27 +4,24 @@
 // Used by ChangeRoleModal to display what rights the new role will grant.
 
 export const ROLE_RIGHTS_DEFAULTS = {
+  SUPERADMIN: {
+    PRD_ADD: 1, PRD_EDIT: 1, PRD_DEL: 1,
+    REP_001: 1, REP_002: 1, ADM_USER: 1,
+  },
   ADMIN: {
-    PRD_ADD:  1,
-    PRD_EDIT: 1,
-    PRD_DEL:  0,
-    REP_001:  1,
-    REP_002:  0,
-    ADM_USER: 0,
+    PRD_ADD: 1, PRD_EDIT: 1, PRD_DEL: 0,
+    REP_001: 1, REP_002: 0, ADM_USER: 1,
   },
   USER: {
-    PRD_ADD:  1,
-    PRD_EDIT: 1,
-    PRD_DEL:  0,
-    REP_001:  1,
-    REP_002:  0,
-    ADM_USER: 0,
+    PRD_ADD: 1, PRD_EDIT: 1, PRD_DEL: 0,
+    REP_001: 1, REP_002: 0, ADM_USER: 0,
   },
 };
 
 export const ROLE_MODULE_DEFAULTS = {
-  ADMIN: { Prod_Mod: 1, Report_Mod: 1, Adm_Mod: 0 },
-  USER:  { Prod_Mod: 1, Report_Mod: 1, Adm_Mod: 0 },
+  SUPERADMIN: { Prod_Mod: 1, Report_Mod: 1, Adm_Mod: 1 },
+  ADMIN:      { Prod_Mod: 1, Report_Mod: 1, Adm_Mod: 1 },
+  USER:       { Prod_Mod: 1, Report_Mod: 1, Adm_Mod: 0 },
 };
 
 // Human-readable labels for each right_id

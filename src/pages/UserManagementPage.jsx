@@ -28,17 +28,32 @@ function StatusBadge({ status }) {
 }
 
 // Badge for user_type
-function TypeBadge({ userType }) {
-  const styles = {
-    SUPERADMIN: 'bg-purple-100 text-purple-700',
-    ADMIN:      'bg-blue-100 text-blue-700',
-    USER:       'bg-gray-100 text-gray-600',
-  };
+function TypeBadge({ user }) {
+  const isSuperAdmin = user.user_type === 'SUPERADMIN';
+  const isSeeded = user.is_seeded === true;
+
+  let displayRole = user.user_type;
+  let bgColor = 'bg-gray-100 text-gray-600';
+
+  if (isSuperAdmin) {
+    if (isSeeded) {
+      displayRole = 'SUPERADMIN';
+      bgColor = 'bg-purple-800 text-white'; // special dark purple for seeded
+    } else {
+      displayRole = 'AUTHORIZED SUPERADMIN';
+      bgColor = 'bg-purple-100 text-purple-700';
+    }
+  } else if (user.user_type === 'ADMIN') {
+    displayRole = 'ADMIN';
+    bgColor = 'bg-blue-100 text-blue-700';
+  } else {
+    displayRole = 'USER';
+    bgColor = 'bg-gray-100 text-gray-600';
+  }
+
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-      styles[userType] ?? 'bg-gray-100 text-gray-500'
-    }`}>
-      {userType}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${bgColor}`}>
+      {displayRole}
     </span>
   );
 }
@@ -47,6 +62,14 @@ export default function UserManagementPage() {
   const { currentUser }     = useAuth();
   const { canManageUsers }  = useRights();
   const { showUserStamp } = useStampVisibility();
+  const { refetchRights } = useRights();
+
+  const isSameLevelRestricted = (targetUser) => {
+    if (!currentUser) return false;
+    const isAuthorizedSA = currentUser.user_type === 'SUPERADMIN' && currentUser.is_seeded === false;
+    const targetIsAuthorizedSA = targetUser.user_type === 'SUPERADMIN' && targetUser.is_seeded === false;
+    return isAuthorizedSA && targetIsAuthorizedSA;
+  };
 
   const [users,      setUsers]      = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -55,6 +78,8 @@ export default function UserManagementPage() {
   const [actionError, setActionError] = useState('');
   const [successMsg,  setSuccessMsg]  = useState('');
   const [roleModalUser, setRoleModalUser] = useState(null); // user row being edited
+  const [promoteConfirm, setPromoteConfirm] = useState(null);
+  const [demoteConfirm,  setDemoteConfirm]  = useState(null);
 
 
   useEffect(() => {
@@ -140,8 +165,16 @@ export default function UserManagementPage() {
 
     async function handleRoleChange(newRole) {
     if (!roleModalUser) return;
+
+    if (roleModalUser.is_seeded === true) {
+      setActionError('Cannot change the role of the Seeded Superadmin.');
+      setRoleModalUser(null);
+      return;
+    }
+    
     setActionError('');
     setSuccessMsg('');
+    setActionId(roleModalUser.userid);
 
     const { error: roleErr } = await changeUserRole(
       roleModalUser.userid,
@@ -149,21 +182,18 @@ export default function UserManagementPage() {
       currentUser
     );
 
+    setActionId(null);
+    setRoleModalUser(null);
+
     if (roleErr) {
       setActionError(roleErr.message ?? 'Failed to change role. Please try again.');
-      setRoleModalUser(null);
       return;
     }
 
-    // Optimistic update — update user_type in local state
-    setUsers(prev =>
-      prev.map(u => u.userid === roleModalUser.userid ? { ...u, user_type: newRole } : u)
-    );
-    setSuccessMsg(
-      `"${roleModalUser.username ?? roleModalUser.userid}" role changed to ${newRole}.
-      Their rights have been reset to the ${newRole} defaults.`
-    );
-    setRoleModalUser(null);
+    // Refetch users to get updated user_type and is_seeded
+    await fetchUsers();
+    setSuccessMsg(`"${roleModalUser.username ?? roleModalUser.userid}" role changed to ${newRole}.`);
+    setTimeout(() => setSuccessMsg(''), 4000);
   }
 
   // Sort: SUPERADMIN first, then ADMIN, then USER; within each type by username
@@ -285,7 +315,7 @@ export default function UserManagementPage() {
 
                       {/* Role */}
                       <td className="px-4 py-3">
-                        <TypeBadge userType={user.user_type} />
+                        <TypeBadge user={user} />
                       </td>
 
                       {/* Status */}
@@ -305,71 +335,44 @@ export default function UserManagementPage() {
                         <div className="flex items-center justify-end gap-2">
 
                           {/* Activate button */}
-                          {/* Disabled for SUPERADMIN rows (project guide Section 7.2) */}
-                          <div
-                            title={getTooltip(user)}
-                            className="inline-block"
-                          >
+                          <div title={getTooltip(user)} className="inline-block">
                             <button
                               onClick={() => handleActivate(user)}
-                              disabled={superadminRow || isUpdating || isActive}
+                              disabled={isSameLevelRestricted(user) || superadminRow || isUpdating || isActive}
                               className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
                                 superadminRow || isActive
                                   ? 'text-gray-300 cursor-not-allowed'
                                   : 'text-green-600 hover:bg-green-50 hover:text-green-800'
                               }`}
                             >
-                              {isUpdating ? '…' : (
-                                <span className="flex items-center gap-1">
-                                  {superadminRow && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                  )}
-                                  Activate
-                                </span>
-                              )}
+                              {isUpdating ? '…' : 'Activate'}
                             </button>
                           </div>
 
                           {/* Deactivate button */}
-                          <div
-                            title={getTooltip(user)}
-                            className="inline-block"
-                          >
+                          <div title={getTooltip(user)} className="inline-block">
                             <button
                               onClick={() => handleDeactivate(user)}
-                              disabled={superadminRow || isUpdating || !isActive}
+                              disabled={isSameLevelRestricted(user) || superadminRow || isUpdating || !isActive}
                               className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
                                 superadminRow || !isActive
                                   ? 'text-gray-300 cursor-not-allowed'
                                   : 'text-red-500 hover:bg-red-50 hover:text-red-700'
                               }`}
                             >
-                              {isUpdating ? '…' : (
-                                <span className="flex items-center gap-1">
-                                  {superadminRow && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                  )}
-                                  Deactivate
-                                </span>
-                              )}
+                              {isUpdating ? '…' : 'Deactivate'}
                             </button>
                           </div>
 
-                          {/* Change Role button — SUPERADMIN only; hidden for SUPERADMIN target rows */}
-                          {!isProtectedRow(user) && (
-                            <div className="inline-block" title="">
-                              <button
-                                onClick={() => setRoleModalUser(user)}
-                                disabled={isUpdating}
-                                className="text-xs font-medium px-3 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 hover:text-purple-800 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
-                              >
-                                Change Role
-                              </button>
-                            </div>
+                          {/* Change Role button (only if not seeded) */}
+                          {!user.is_seeded && (
+                            <button
+                              onClick={() => setRoleModalUser(user)}
+                              disabled={actionId === user.userid || isSameLevelRestricted(user)}
+                              className="text-xs font-medium px-3 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 hover:text-purple-800 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
+                            >
+                              Change Role
+                            </button>
                           )}
 
                         </div>
@@ -393,6 +396,7 @@ export default function UserManagementPage() {
       {roleModalUser && (
         <ChangeRoleModal
           user={roleModalUser}
+          currentUser={currentUser}
           onClose={() => setRoleModalUser(null)}
           onSuccess={handleRoleChange}
         />
