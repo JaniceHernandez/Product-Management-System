@@ -1,6 +1,7 @@
 // src/components/admin/FeaturePermissionsPanel.jsx
 import { useState, useEffect } from 'react';
 import { getUserPermissions, updateUserPermission } from '../../services/userService';
+import { ROLE_RIGHTS_DEFAULTS } from '../../utils/roleDefaults';
 
 const ALL_RIGHTS_CONFIG = [
   { id: 'PRD_ADD',  label: 'Add Products',    icon: '📦', elevated: false },
@@ -55,7 +56,10 @@ export default function FeaturePermissionsPanel({ targetUser, currentUser, onClo
   const [success, setSuccess] = useState('');
 
   const allowedRightIds = getAllowedRights(currentUser, targetUser);
-  const allowedRights = ALL_RIGHTS_CONFIG.filter(r => allowedRightIds.includes(r.id));
+  const defaultRights = ROLE_RIGHTS_DEFAULTS[targetUser.user_type] || {};
+  const allowedRights = ALL_RIGHTS_CONFIG.filter(r => 
+    allowedRightIds.includes(r.id) && defaultRights[r.id] === 1
+  );
 
   useEffect(() => {
     let cancelled = false;
