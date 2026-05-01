@@ -17,50 +17,30 @@
 // The exact tooltip text required by the project guide and UI spec
 export const SUPERADMIN_TOOLTIP = 'SUPERADMIN accounts cannot be modified';
 
-/**
- * Returns guard utilities for SUPERADMIN row protection.
- * No context dependencies — pure utility, no hook state.
- */
 export function useSuperAdminGuard() {
-  /**
-   * Returns true if the target user row should have all action buttons disabled.
-   * A row is protected if the user's user_type is 'SUPERADMIN'.
-   * This applies regardless of who is currently signed in.
-   *
-   * @param {object} targetUser - A user row from getAllUsers()
-   * @param {string} targetUser.user_type - The role of the target user
-   * @returns {boolean}
-   */
+  // True only for the Seeded Superadmin (is_seeded = true)
+  function isImmutableRow(targetUser) {
+    return targetUser?.user_type === 'SUPERADMIN' && targetUser?.is_seeded === true;
+  }
+
+  // For backward compatibility: treat Seeded SA as protected
   function isProtectedRow(targetUser) {
-    return targetUser?.user_type === 'SUPERADMIN';
+    return isImmutableRow(targetUser);
   }
 
-  /**
-   * Returns the tooltip text for disabled buttons on protected rows.
-   * Returns an empty string for unprotected rows (no tooltip shown).
-   *
-   * @param {object} targetUser
-   * @returns {string}
-   */
   function getTooltip(targetUser) {
-    return isProtectedRow(targetUser) ? SUPERADMIN_TOOLTIP : '';
+    return isImmutableRow(targetUser) ? SUPERADMIN_TOOLTIP : '';
   }
 
-  /**
-   * Returns the className modifier for a protected row's container <tr>.
-   * Protected rows get a distinct visual treatment.
-   *
-   * @param {object} targetUser
-   * @returns {string} Tailwind classes to apply
-   */
   function getRowClass(targetUser) {
-    return isProtectedRow(targetUser)
+    return isImmutableRow(targetUser)
       ? 'bg-purple-50'
       : 'hover:bg-gray-50 transition-colors';
   }
 
   return {
     isProtectedRow,
+    isImmutableRow,        // new
     getTooltip,
     getRowClass,
     TOOLTIP_TEXT: SUPERADMIN_TOOLTIP,

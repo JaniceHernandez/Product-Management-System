@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
 
       const { data, error } = await supabase
         .from('user')
-        .select('userid, username, user_type, record_status, firstname, lastname')
+        .select('userid, username, user_type, record_status, firstname, lastname, is_seeded')
         .eq('userid', userId)
         .maybeSingle();
 
@@ -253,15 +253,16 @@ export function AuthProvider({ children }) {
 
   // ── buildCurrentUser ───────────────────────────────────────
   function buildCurrentUser(data, email) {
-    return {
-      ...data,
-      userId:    data.userid,
-      email,
-      username:  data.username || email,
-      firstName: data.firstname || '',
-      lastName:  data.lastname  || '',
-    };
-  }
+  return {
+    ...data,
+    userId:    data.userid,
+    email,
+    username:  data.username || email,
+    firstName: data.firstname || '',
+    lastName:  data.lastname  || '',
+    isSeededSuperAdmin: data.user_type === 'SUPERADMIN' && data.is_seeded === true,
+  };
+}
 
   // ── logSignIn ──────────────────────────────────────────────
   // Called after a user profile is confirmed ACTIVE and set into state.

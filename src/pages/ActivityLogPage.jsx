@@ -21,6 +21,7 @@ const ACTION_CONFIG = {
   ROLE_CHANGED:      { label: 'Role Changed',      color: 'bg-purple-100 text-purple-700' },
   USER_SIGNED_IN:    { label: 'Signed In',         color: 'bg-gray-100 text-gray-600' },
   USER_SIGNED_OUT:   { label: 'Signed Out',        color: 'bg-gray-100 text-gray-500' },
+  ROLE_CHANGED:      { label: 'Role Changed', color: 'bg-purple-100 text-purple-700' },
 };
 
 function ActionBadge({ action }) {

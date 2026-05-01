@@ -77,32 +77,61 @@ async function getProductsWithoutPrice(userType) {
 // @param {{ prodcode: string, description: string, unit: string }} product
 // @param {string} userId - currentUser.userid
 // @returns {{ data: object|null, error: object|null }}
-export async function addProduct(productData, currentUser) {
-  const stamp = makeStamp('ADDED');
+export async function addProductWithPrice(productData, priceData, currentUser) {
+  const productStamp = makeStamp('ADDED');
+  const priceStamp = makeStamp('ADDED');
 
-  const { data, error } = await supabase
+  // 1. Insert product
+  const { data: product, error: productError } = await supabase
     .from('product')
-    .insert({ ...productData, record_status: 'ACTIVE', stamp })
+    .insert({ ...productData, record_status: 'ACTIVE', stamp: productStamp })
     .select()
     .single();
 
-  if (error) {
-    console.error('addProduct error:', error.message);
-    return { data: null, error };
+  if (productError) {
+    console.error('addProductWithPrice - product insert error:', productError.message);
+    return { data: null, error: productError };
   }
 
-  // Log the activity after successful insert
+  // 2. Insert price history entry
+  const { error: priceError } = await supabase
+    .from('pricehist')
+    .insert({
+      prodcode: productData.prodcode,
+      effdate: priceData.effdate,
+      unitprice: Number(priceData.unitprice),
+      stamp: priceStamp,
+    });
+
+  if (priceError) {
+    // Rollback: delete the product we just created
+    await supabase.from('product').delete().eq('prodcode', productData.prodcode);
+    console.error('addProductWithPrice - price insert error:', priceError.message);
+    return { data: null, error: priceError };
+  }
+
+  // 3. Log both actions
   await logActivity({
-    actorId:     currentUser.userid,
-    actorEmail:  currentUser.email,
-    actorRole:   currentUser.user_type,
-    action:      'PRODUCT_ADDED',
+    actorId: currentUser.userid,
+    actorEmail: currentUser.email,
+    actorRole: currentUser.user_type,
+    action: 'PRODUCT_ADDED',
     targetTable: 'product',
-    targetId:    productData.prodcode,
-    detail:      `Added product ${productData.prodcode} — ${productData.description ?? ''}`,
+    targetId: productData.prodcode,
+    detail: `Added product ${productData.prodcode} — ${productData.description ?? ''}`,
   });
 
-  return { data, error: null };
+  await logActivity({
+    actorId: currentUser.userid,
+    actorEmail: currentUser.email,
+    actorRole: currentUser.user_type,
+    action: 'PRICE_ADDED',
+    targetTable: 'pricehist',
+    targetId: productData.prodcode,
+    detail: `Initial price ₱${priceData.unitprice} effective ${priceData.effdate}`,
+  });
+
+  return { data: product, error: null };
 }
 
 // ── updateProduct ──────────────────────────────────────────────
