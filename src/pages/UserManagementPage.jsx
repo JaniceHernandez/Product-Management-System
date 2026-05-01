@@ -364,11 +364,11 @@ export default function UserManagementPage() {
                             </button>
                           </div>
 
-                          {/* Change Role button (only if not seeded) */}
-                          {!user.is_seeded && (
+                          {/* Change Role – only for SUPERADMIN (Seeded or Authorized), never for ADMIN */}
+                          {currentUser?.user_type !== 'ADMIN' && !user.is_seeded && (
                             <button
                               onClick={() => setRoleModalUser(user)}
-                              disabled={actionId === user.userid || isSameLevelRestricted(user)}
+                              disabled={isUpdating || disabled}
                               className="text-xs font-medium px-3 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 hover:text-purple-800 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
                             >
                               Change Role
