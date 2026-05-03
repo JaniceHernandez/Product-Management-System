@@ -1,33 +1,10 @@
 // src/services/userService.js
-// Data-access layer for the Admin Module (User Management page).
-// getAllUsers() — fetch all user rows for the management table
-// activateUser() — set record_status = 'ACTIVE'
-// deactivateUser() — set record_status = 'INACTIVE' (soft deactivation)
-//
-// RLS from S3-T07 enforces SUPERADMIN protection at the DB level:
-// - ADMIN cannot update SUPERADMIN rows
-// - SUPERADMIN has full access
-// The service passes operations through without additional role checks.
-
 import { supabase }  from '../lib/supabaseClient';
 import { makeStamp } from '../utils/stampHelper';
 import { logActivity } from './activityLogService';
 import { ROLE_RIGHTS_DEFAULTS, ROLE_MODULE_DEFAULTS } from '../utils/roleDefaults';
 
-// ── changeUserRole ─────────────────────────────────────────────
-// US-26: SUPERADMIN changes a user's role and resets their rights
-
 // ── getAllUsers ────────────────────────────────────────────────
-// Returns users scoped by the caller's role:
-//   SUPERADMIN → all users (all user_types)
-//   ADMIN      → only USER-type accounts
-//
-// The RLS SELECT policy (023_add_user_email.sql) enforces the same
-// scoping at the DB level. The callerUserType param adds an explicit
-// client-side filter as a second layer.
-//
-// @param {string} callerUserType - currentUser.user_type
-// @returns {{ data: Array, error: object|null }}
 export async function getAllUsers(callerUserType = 'SUPERADMIN') {
   let query = supabase
     .from('user')
@@ -43,7 +20,6 @@ export async function getAllUsers(callerUserType = 'SUPERADMIN') {
   const { data, error } = await query;
 
   if (error) {
-    console.error('getAllUsers error:', error.message);
     return { data: [], error };
   }
 
@@ -51,16 +27,6 @@ export async function getAllUsers(callerUserType = 'SUPERADMIN') {
 }
 
 // ── activateUser ───────────────────────────────────────────────
-// US-22: SUPERADMIN activates a newly registered user.
-//
-// Sets record_status = 'ACTIVE'. After activation, the user can sign in.
-// ADMIN attempting to activate a SUPERADMIN account will be blocked by
-// the admin_update_record_status RLS policy (S3-T07) — the error is
-// returned to the caller for display.
-//
-// @param {string} userId - The userid of the account to activate
-// @param {string} actorId - currentUser.userid of the person performing the action
-// @returns {{ error: object|null }}
 export async function activateUser(userId, currentUser) {
   const stamp = makeStamp('ACTIVATED');
 
@@ -70,7 +36,6 @@ export async function activateUser(userId, currentUser) {
     .eq('userid', userId);
 
   if (error) {
-    console.error('activateUser error:', error.message);
     return { error };
   }
 
@@ -88,18 +53,6 @@ export async function activateUser(userId, currentUser) {
 }
 
 // ── deactivateUser ─────────────────────────────────────────────
-// US-23: SUPERADMIN deactivates a user account.
-// US-25: System prevents ADMIN from deactivating SUPERADMIN accounts.
-//
-// Sets record_status = 'INACTIVE'. The deactivated user is immediately
-// blocked by the login guard (AuthCallbackPage checks record_status).
-//
-// Note: This is a SOFT operation — record_status = 'INACTIVE', not DELETE.
-// Per the project rule: no hard deletes. User rows are never removed.
-//
-// @param {string} userId - The userid of the account to deactivate
-// @param {string} actorId - currentUser.userid of the person performing the action
-// @returns {{ error: object|null }}
 export async function deactivateUser(userId, currentUser) {
   const stamp = makeStamp('DEACTIVATED');
 
@@ -109,7 +62,6 @@ export async function deactivateUser(userId, currentUser) {
     .eq('userid', userId);
 
   if (error) {
-    console.error('deactivateUser error:', error.message);
     return { error };
   }
 
@@ -127,24 +79,7 @@ export async function deactivateUser(userId, currentUser) {
 }
 
 // ── changeUserRole ─────────────────────────────────────────────
-// US-26: SUPERADMIN changes a user's role and resets their rights
-//        to the canonical defaults for the new role.
-//
-// Steps performed atomically (sequential Supabase calls):
-//   1. UPDATE public.user SET user_type = newRole + stamp
-//   2. For each of the 6 rights: UPDATE UserModule_Rights
-//      SET right_value = <default for newRole>, stamp
-//   3. For each of the 3 modules: UPDATE user_module
-//      SET rights_value = <default for newRole>, stamp
-//
-// SUPERADMIN protection: enforced by RLS (022_rls_role_update.sql).
-// Attempting to change a SUPERADMIN's role will be blocked by the DB.
-// Attempting to promote to SUPERADMIN is blocked by WITH CHECK.
-//
-// @param {string} targetUserId - userid of the user whose role changes
-// @param {string} newRole - 'ADMIN' or 'USER'
-// @param {string} actorId - currentUser.userid of SUPERADMIN performing the action
-// @returns {{ error: object|null }}
+
 export async function changeUserRole(targetUserId, newRole, currentUser) {
   if (!['ADMIN', 'USER', 'SUPERADMIN'].includes(newRole)) {
     return { error: { message: 'Invalid role. Must be ADMIN, USER, or SUPERADMIN.' } };
@@ -262,7 +197,6 @@ export async function changeUserRole(targetUserId, newRole, currentUser) {
 }
 
 // ── getUserPermissions ─────────────────────────────────────────
-// Returns a flat map { right_id: value } for a target user.
 export async function getUserPermissions(targetUserId) {
   const { data, error } = await supabase
     .from('usermodule_rights')
@@ -270,7 +204,6 @@ export async function getUserPermissions(targetUserId) {
     .eq('userid', targetUserId);
 
   if (error) {
-    console.error('getUserPermissions error:', error.message);
     return { data: null, error };
   }
 
@@ -282,8 +215,6 @@ export async function getUserPermissions(targetUserId) {
 }
 
 // ── updateUserPermission ───────────────────────────────────────
-// Toggle a single permission for a target user.
-// RLS enforces actor‑level access at the DB layer.
 export async function updateUserPermission(targetUserId, rightId, newValue, currentUser) {
   const stamp = makeStamp('PERMISSIONS_UPDATED');
 
@@ -294,7 +225,6 @@ export async function updateUserPermission(targetUserId, rightId, newValue, curr
     .eq('right_id', rightId);
 
   if (error) {
-    console.error('updateUserPermission error:', error.message);
     return { error };
   }
 

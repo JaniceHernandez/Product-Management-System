@@ -29,7 +29,6 @@ export default function ChangeRoleModal({ user, currentUser, onClose, onSuccess 
   }
 
   if (allowedRoles.length === 0) {
-    console.warn('[ChangeRoleModal] No roles allowed – closing');
     return null;
   }
 

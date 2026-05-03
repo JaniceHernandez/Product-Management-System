@@ -3,10 +3,6 @@ import { useState } from 'react';
 import { useAuth }        from '../../hooks/useAuth';
 import { addPriceEntry }  from '../../services/priceHistService';
 
-/**
- * @param {string}   prodcode   - FK to product
- * @param {Function} onSuccess  - Called after successful insert; parent re-fetches
- */
 export default function AddPriceEntryForm({ prodcode, onSuccess }) {
   const { currentUser } = useAuth();
 
