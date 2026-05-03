@@ -625,10 +625,10 @@ export default function ProductsPage() {
                               <IconEdit />
                             </button>
                           )}
-                          {canDelete && (
+                          {currentUser?.user_type === 'SUPERADMIN' && (
                             <button
                               onClick={() => { setSelectedProduct(product); setShowDeleteDialog(true); }}
-                              title="Delete Product"
+                              title="Delete Product (Soft‑delete, SUPERADMIN only)"
                               className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-gray-400 hover:text-red-500 hover:bg-red-50"
                             >
                               <IconDelete />
