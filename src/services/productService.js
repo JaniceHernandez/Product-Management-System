@@ -18,8 +18,7 @@ import { logActivity } from './activityLogService';
 // @param {string} userType - 'USER' | 'ADMIN' | 'SUPERADMIN'
 // @returns {{ data: Array, error: object|null }}
 export async function getProducts(userType) {
-  // Select product columns + current price from the view (added after S2-T10 merges)
-  // If the view does not yet exist, use the simpler select below instead.
+  // Base query: get all active products (or all if admin/superadmin)
   let query = supabase
     .from('product')
     .select(`
@@ -27,30 +26,56 @@ export async function getProducts(userType) {
       description,
       unit,
       record_status,
-      stamp,
-      current_product_price ( unitprice, effdate )
+      stamp
     `)
     .order('prodcode');
 
-  // Layer 1 filter: USER accounts always get only ACTIVE rows
   if (userType === 'USER') {
     query = query.eq('record_status', 'ACTIVE');
   }
-  // ADMIN / SUPERADMIN: no filter — sees both ACTIVE and INACTIVE
 
-  const { data, error } = await query;
-
-  if (error) {
-    // Fallback: if the view join fails (view not deployed yet), fetch without price
-    if (error.message.includes('current_product_price')) {
-      console.warn('getProducts: current_product_price view not available, fetching without price');
-      return getProductsWithoutPrice(userType);
-    }
-    console.error('getProducts error:', error.message);
-    return { data: [], error };
+  const { data: products, error: productsError } = await query;
+  if (productsError) {
+    console.error('getProducts error:', productsError.message);
+    return { data: [], error: productsError };
   }
 
-  return { data: data ?? [], error: null };
+  if (!products || products.length === 0) {
+    return { data: [], error: null };
+  }
+
+  // Fetch the latest price for each product using a single query
+  const prodCodes = products.map(p => p.prodcode);
+  const { data: prices, error: pricesError } = await supabase
+    .from('pricehist')
+    .select('prodcode, unitprice, effdate')
+    .in('prodcode', prodCodes)
+    .order('effdate', { ascending: false });
+
+  if (pricesError) {
+    console.error('getProducts price fetch error:', pricesError.message);
+    // Still return products without prices
+    return { data: products.map(p => ({ ...p, current_price: null })), error: null };
+  }
+
+  // Build a map of the latest price per product
+  const priceMap = new Map();
+  for (const price of prices) {
+    if (!priceMap.has(price.prodcode)) {
+      priceMap.set(price.prodcode, {
+        unitprice: price.unitprice,
+        effdate: price.effdate,
+      });
+    }
+  }
+
+  // Merge prices into products
+  const merged = products.map(product => ({
+    ...product,
+    current_price: priceMap.get(product.prodcode) || null,
+  }));
+
+  return { data: merged, error: null };
 }
 
 // Internal fallback used until S2-T10 (current_product_price view) is deployed
