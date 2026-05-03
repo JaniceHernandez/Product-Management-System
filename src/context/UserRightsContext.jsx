@@ -1,24 +1,17 @@
 // src/context/UserRightsContext.jsx
-// Loads the current user's rights map from UserModule_Rights on login.
-// Exposes useRights() for all components that gate buttons, columns, or routes.
-// Clears the map on logout; re-fetches when currentUser.userid changes.
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth }  from '../hooks/useAuth';
  
 const UserRightsContext = createContext(null);
  
-// The six right IDs used in this application (project guide Section 2.2)
+
 const ALL_RIGHTS = ['PRD_ADD', 'PRD_EDIT', 'PRD_DEL', 'REP_001', 'REP_002', 'ADM_USER'];
  
-// Safe default: all rights = 0 while loading or on error
-// Prevents any write button from appearing before permissions are confirmed
 function defaultRights() {
   return Object.fromEntries(ALL_RIGHTS.map(id => [id, 0]));
 }
  
-// Normalize a raw DB row to { id: string, value: number, status: string }
-// Handles both lowercase and mixed-case column names
 function normalizeRow(row) {
   return {
     id:     row.right_id    ?? row['Right_ID']     ?? '',
@@ -76,7 +69,6 @@ export function UserRightsProvider({ children }) {
         .eq('userid', userId);
  
       if (error2) {
-        console.error('[UserRightsContext] fetchRights failed:', error2.message);
         setRightsError('Could not load user permissions. Please refresh the page.');
         setRights(defaultRights());
         return;
@@ -85,7 +77,6 @@ export function UserRightsProvider({ children }) {
       buildAndSetMap(data2);
  
     } catch (err) {
-      console.error('[UserRightsContext] Unexpected error:', err);
       setRightsError('Could not load user permissions.');
       setRights(defaultRights());
     } finally {

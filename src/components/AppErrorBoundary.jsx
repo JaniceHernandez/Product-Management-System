@@ -1,4 +1,3 @@
-// Simple error boundary class for provider failures
 // src/components/AppErrorBoundary.jsx
 import { Component } from 'react';
 
