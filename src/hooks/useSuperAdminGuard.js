@@ -1,20 +1,4 @@
 // src/hooks/useSuperAdminGuard.js
-// Centralised SUPERADMIN row protection for the Admin Module.
-// Provides a guard function and constants used by UserManagementPage
-// (and any future admin components that list users).
-//
-// Project guide Section 7.2:
-//   "Even if an ADMIN somehow bypasses the UI, the RLS policy at the
-//    database level will reject the UPDATE. Both layers must be in place."
-//
-// Usage:
-//   import { useSuperAdminGuard } from '../hooks/useSuperAdminGuard';
-//   const { isProtectedRow, TOOLTIP_TEXT } = useSuperAdminGuard();
-//   <button disabled={isProtectedRow(user)} title={isProtectedRow(user) ? TOOLTIP_TEXT : ''}>
-//     Activate
-//   </button>
-
-// The exact tooltip text required by the project guide and UI spec
 export const SUPERADMIN_TOOLTIP = 'SUPERADMIN accounts cannot be modified';
 
 export function useSuperAdminGuard() {

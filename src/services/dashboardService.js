@@ -1,13 +1,8 @@
 // src/services/dashboardService.js
-// Data-access layer for the Dashboard page.
-// All functions are designed to be called in parallel via Promise.all().
-// Each function returns { data, error } — never throws.
 
 import { supabase } from '../lib/supabaseClient';
 
 // ── getProductMetrics ──────────────────────────────────────────
-// Returns counts for the metric cards.
-// @returns {{ activeCount, inactiveCount, pendingActivations, totalUsers, error }}
 export async function getDashboardMetrics() {
   const [activeRes, inactiveRes, usersRes] = await Promise.all([
     // Active product count
@@ -40,8 +35,6 @@ export async function getDashboardMetrics() {
 }
 
 // ── getTopSellingChartData ─────────────────────────────────────
-// Returns top 10 products by quantity sold — for the bar chart.
-// Only called when REP_002 = 1 (SUPERADMIN).
 export async function getTopSellingChartData() {
   const { data, error } = await supabase
     .from('top_selling_products')
@@ -52,8 +45,6 @@ export async function getTopSellingChartData() {
 }
 
 // ── getPriceTrendData ──────────────────────────────────────────
-// Returns recent price history entries for the trend line chart.
-// Shows the 5 most recently updated products' price history.
 export async function getPriceTrendData() {
   const { data, error } = await supabase
     .from('pricehist')
@@ -66,8 +57,6 @@ export async function getPriceTrendData() {
 }
 
 // ── getUserStatusData ──────────────────────────────────────────
-// Returns user counts by status and type — for the doughnut chart.
-// Only called by SUPERADMIN (full user visibility).
 export async function getUserStatusData() {
   const { data, error } = await supabase
     .from('user')
@@ -87,8 +76,6 @@ export async function getUserStatusData() {
 }
 
 // ── getRecentActivity ──────────────────────────────────────────
-// Returns the 5 most recent activity log entries.
-// RLS scopes result: SUPERADMIN sees all; ADMIN sees own.
 export async function getRecentActivity() {
   const { data, error } = await supabase
     .from('activity_log')

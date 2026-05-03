@@ -1,17 +1,4 @@
 // src/hooks/useStampVisibility.js
-// Centralised stamp visibility hook — project guide Section 2.3.
-//
-// Stamp visibility rules:
-//   SUPERADMIN: stamp visible on ALL tables (product, priceHist, user, deleted items)
-//   ADMIN:      stamp visible on product and priceHist tables ONLY
-//   USER:       stamp NEVER visible on any table
-//
-// Each flag is a boolean. Components use {flagName && <th>Stamp</th>}
-// for DOM-absent conditional rendering.
-//
-// Usage:
-//   import { useStampVisibility } from '../hooks/useStampVisibility';
-//   const { showProductStamp, showUserStamp } = useStampVisibility();
 
 import { useAuth } from './useAuth';
 

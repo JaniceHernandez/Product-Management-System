@@ -60,8 +60,6 @@ export default function RegisterPage() {
   }
 
   // ── Email / Password register handler ───────────────────────
-  // M4 (S1-T12) will replace the console.log with the real
-  // supabase.auth.signUp() call.
   async function handleEmailRegister() {
     setFormError('');
     setSuccess(false);
@@ -76,18 +74,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // TODO (M4 — S1-T12): replace with Supabase signUp
-      // supabase.auth.signUp({
-      //   email,
-      //   password,
-      //   options: { data: { firstName, lastName, username } }
-      // })
-      console.log('Email registration submitted:', {
-        firstName, lastName, username, email, password
-      });
-
-      // TODO (M4 — S1-T12): on success, show confirmation message
-      // setSuccess(true);
+      
     } catch {
       setFormError('An unexpected error occurred. Please try again.');
     } finally {
@@ -96,18 +83,11 @@ export default function RegisterPage() {
   }
 
   // ── Google OAuth register handler ────────────────────────────
-  // M4 (S1-T13) will replace the console.log with the real
-  // supabase.auth.signInWithOAuth() call.
   async function handleGoogleRegister() {
     setFormError('');
 
     try {
-      // TODO (M4 — S1-T13): replace with Supabase signInWithOAuth
-      // supabase.auth.signInWithOAuth({
-      //   provider: 'google',
-      //   options: { redirectTo: `${window.location.origin}/auth/callback` }
-      // })
-      console.log('Google register triggered');
+
     } catch {
       setFormError('Google sign-up failed. Please try again.');
     }

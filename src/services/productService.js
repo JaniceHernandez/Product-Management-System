@@ -1,22 +1,10 @@
 // src/services/productService.js
-// Data-access layer for the product table.
-// All components import from here — never call supabase.from('product') directly.
 
 import { supabase }  from '../lib/supabaseClient';
 import { makeStamp } from '../utils/stampHelper';
 import { logActivity } from './activityLogService';
 
 // ── getProducts ────────────────────────────────────────────────
-// US-08: Fetch the product list.
-// US-12: USER sees only ACTIVE rows (client-side filter + RLS).
-// US-13: ADMIN/SUPERADMIN see all rows.
-//
-// Joins the current_product_price view (S2-T10) to include the
-// latest unit price per product. Falls back to null if the view
-// is not yet available.
-//
-// @param {string} userType - 'USER' | 'ADMIN' | 'SUPERADMIN'
-// @returns {{ data: Array, error: object|null }}
 export async function getProducts(userType) {
   // Base query: get all active products (or all if admin/superadmin)
   let query = supabase
@@ -36,7 +24,6 @@ export async function getProducts(userType) {
 
   const { data: products, error: productsError } = await query;
   if (productsError) {
-    console.error('getProducts error:', productsError.message);
     return { data: [], error: productsError };
   }
 
@@ -53,7 +40,6 @@ export async function getProducts(userType) {
     .order('effdate', { ascending: false });
 
   if (pricesError) {
-    console.error('getProducts price fetch error:', pricesError.message);
     // Still return products without prices
     return { data: products.map(p => ({ ...p, current_price: null })), error: null };
   }
@@ -94,14 +80,6 @@ async function getProductsWithoutPrice(userType) {
 }
 
 // ── addProduct ─────────────────────────────────────────────────
-// US-09: Add a new product.
-// US-29: Stamp recorded on every write.
-// Gated in UI by PRD_ADD = 1 (UserRightsContext — S2-T11).
-// RLS INSERT policy enforced at DB level by S2-T09.
-//
-// @param {{ prodcode: string, description: string, unit: string }} product
-// @param {string} userId - currentUser.userid
-// @returns {{ data: object|null, error: object|null }}
 export async function addProductWithPrice(productData, priceData, currentUser) {
   const productStamp = makeStamp('ADDED');
   const priceStamp = makeStamp('ADDED');
@@ -114,7 +92,6 @@ export async function addProductWithPrice(productData, priceData, currentUser) {
     .single();
 
   if (productError) {
-    console.error('addProductWithPrice - product insert error:', productError.message);
     return { data: null, error: productError };
   }
 
@@ -131,7 +108,6 @@ export async function addProductWithPrice(productData, priceData, currentUser) {
   if (priceError) {
     // Rollback: delete the product we just created
     await supabase.from('product').delete().eq('prodcode', productData.prodcode);
-    console.error('addProductWithPrice - price insert error:', priceError.message);
     return { data: null, error: priceError };
   }
 
@@ -160,15 +136,6 @@ export async function addProductWithPrice(productData, priceData, currentUser) {
 }
 
 // ── updateProduct ──────────────────────────────────────────────
-// US-10: Edit product information.
-// US-29: Stamp recorded on every write.
-// Gated in UI by PRD_EDIT = 1 (UserRightsContext — S2-T11).
-// RLS UPDATE policy enforced at DB level by S2-T09.
-//
-// @param {string} prodcode - PK of the product to update
-// @param {{ description?: string, unit?: string }} updates
-// @param {string} userId - currentUser.userid
-// @returns {{ data: object|null, error: object|null }}
 export async function updateProduct(prodcode, updates, currentUser) {
   const stamp = makeStamp('EDITED');
 
@@ -180,7 +147,6 @@ export async function updateProduct(prodcode, updates, currentUser) {
     .single();
 
   if (error) {
-    console.error('updateProduct error:', error.message);
     return { data: null, error };
   }
 
@@ -199,16 +165,6 @@ export async function updateProduct(prodcode, updates, currentUser) {
 }
 
 // ── softDeleteProduct ──────────────────────────────────────────
-// US-11: SUPERADMIN soft-deletes a product.
-// US-33/US-34: No hard delete — sets record_status = 'INACTIVE'.
-// After this call, the product immediately disappears from USER lists
-// (both the client filter and the RLS policy exclude INACTIVE rows).
-// Gated in UI by PRD_DEL = 1 (SUPERADMIN only per rights matrix).
-// RLS UPDATE policy enforced at DB level by S2-T09.
-//
-// @param {string} prodcode
-// @param {string} userId - currentUser.userid
-// @returns {{ error: object|null }}
 export async function softDeleteProduct(prodcode, currentUser) {
   const stamp = makeStamp('DEACTIVATED');
 
@@ -218,7 +174,6 @@ export async function softDeleteProduct(prodcode, currentUser) {
     .eq('prodcode', prodcode);
 
   if (error) {
-    console.error('softDeleteProduct error:', error.message);
     return { error };
   }
 
@@ -236,16 +191,6 @@ export async function softDeleteProduct(prodcode, currentUser) {
 }
 
 // ── recoverProduct ─────────────────────────────────────────────
-// US-14: ADMIN or SUPERADMIN recovers a soft-deleted product.
-// US-35: Recover inactive records so they are visible again.
-// Sets record_status back to 'ACTIVE'. Product immediately reappears
-// in all users' product lists.
-// Only accessible via the Deleted Items page (route-gated — S2-T03).
-// RLS UPDATE policy enforced at DB level by S2-T09.
-//
-// @param {string} prodcode
-// @param {string} userId - currentUser.userid
-// @returns {{ error: object|null }}
 export async function recoverProduct(prodcode, currentUser) {
   const stamp = makeStamp('REACTIVATED');
 
@@ -255,7 +200,6 @@ export async function recoverProduct(prodcode, currentUser) {
     .eq('prodcode', prodcode);
 
   if (error) {
-    console.error('recoverProduct error:', error.message);
     return { error };
   }
 
@@ -273,11 +217,6 @@ export async function recoverProduct(prodcode, currentUser) {
 }
 
 // ── getDeletedProducts ─────────────────────────────────────────
-// US-13: ADMIN/SUPERADMIN view soft-deleted (INACTIVE) products.
-// Used exclusively by DeletedItemsPage (route-gated — S2-T03).
-// Returns INACTIVE products with stamp visible (ADMIN/SUPERADMIN see stamp).
-//
-// @returns {{ data: Array, error: object|null }}
 export async function getDeletedProducts() {
   const { data, error } = await supabase
     .from('product')
@@ -286,7 +225,6 @@ export async function getDeletedProducts() {
     .order('prodcode');
 
   if (error) {
-    console.error('getDeletedProducts error:', error.message);
     return { data: [], error };
   }
 
