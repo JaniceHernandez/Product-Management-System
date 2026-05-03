@@ -63,22 +63,23 @@ export default function TopSellingPage() {
     <div className="p-6">
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+    <div className="mb-6">
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Top Selling Products</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Top 10 active products ranked by total quantity sold across all transactions.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Top Selling Products</h1>
+          <p className="text-sm text-gray-500 mt-1">Top 10 active products ranked by total quantity sold across all transactions.</p>
         </div>
+        {/* Action button if applicable */}
         {products.length > 0 && (
-          <button
-            onClick={() => exportToCSV(rankedData, CSV_COLUMNS, CSV_HEADERS, 'top-selling-report.csv')}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            ⬇ Export CSV
-          </button>
-        )}
+              <button
+                onClick={() => exportToCSV(rankedData, CSV_COLUMNS, CSV_HEADERS, 'top-selling-report.csv')}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                ⬇ Export CSV
+              </button>
+            )}
       </div>
+    </div>
 
       {/* Error */}
       {error && (

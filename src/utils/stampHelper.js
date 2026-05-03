@@ -1,22 +1,20 @@
 // src/utils/stampHelper.js
-// Generates audit trail strings for all write operations.
-// Format: ACTION USERID YYYY-MM-DD HH:MM
+// Simplified stamp format — S3-T20.
+// New format: ACTION YYYY-MM-DD HH:MM
+// The userid is no longer embedded — actor identity is tracked in activity_log.
 //
-// Examples:
-//   ADDED user2 2025-10-20 14:30
-//   EDITED user3 2025-11-05 09:15
-//   DEACTIVATED user1 2025-11-10 16:00
-//   REACTIVATED user1 2025-11-12 09:00
+// BREAKING CHANGE: second argument (userId) is removed.
+// Old call: makeStamp('ADDED', userId)  → now just: makeStamp('ADDED')
+// JavaScript silently ignores extra args, but remove them for clarity.
 
 /**
- * Generate a stamp string for audit logging.
- * @param {string} action  - Uppercase action verb (e.g. 'ADDED', 'EDITED', 'DEACTIVATED')
- * @param {string} userId  - The userid of the acting user (currentUser.userid)
- * @returns {string}
+ * Generate a stamp string for audit trail columns.
+ * @param {string} action - e.g. 'ADDED', 'EDITED', 'DEACTIVATED', 'ROLE_CHANGED'
+ * @returns {string} e.g. 'ADDED 2025-10-20 14:30'
  */
-export function makeStamp(action, userId) {
+export function makeStamp(action) {
   const now  = new Date();
   const date = now.toISOString().slice(0, 10);   // YYYY-MM-DD
-  const time = now.toTimeString().slice(0, 5);    // HH:MM (local time)
-  return `${action} ${userId} ${date} ${time}`;
+  const time = now.toTimeString().slice(0, 5);   // HH:MM
+  return `${action} ${date} ${time}`;
 }
