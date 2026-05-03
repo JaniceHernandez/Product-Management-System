@@ -66,6 +66,21 @@ function IconSortBoth() {
     </svg>
   );
 }
+function IconFilter() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+      <polygon points="22 3 2 3 10 13.46 10 21 14 18 14 13.46 22 3" />
+    </svg>
+  );
+}
+function IconX() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
 
 function SortTh({ field, label, sortField, sortDirection, onSort, className = '' }) {
   const active = sortField === field;
@@ -115,6 +130,11 @@ export default function ProductsPage() {
   const [unitFilter, setUnitFilter] = useState('');
   const [sortField, setSortField] = useState('prodcode');
   const [sortDirection, setSortDirection] = useState('asc');
+  
+  // Price range filter states
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [showPriceFilter, setShowPriceFilter] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -198,12 +218,28 @@ export default function ProductsPage() {
     return units;
   }, [products]);
 
+  // Clear price filters
+  const clearPriceFilters = () => {
+    setMinPrice('');
+    setMaxPrice('');
+  };
+
   const displayed = useMemo(() => {
     const term = searchTerm.toLowerCase();
     let filtered = products.filter(p =>
       (p.prodcode.toLowerCase().includes(term) || p.description.toLowerCase().includes(term)) &&
       (unitFilter ? p.unit === unitFilter : true)
     );
+
+    // Apply price range filter
+    if (minPrice || maxPrice) {
+      filtered = filtered.filter(p => {
+        const price = prices.get(p.prodcode)?.unitprice ?? 0;
+        const min = minPrice ? parseFloat(minPrice) : -Infinity;
+        const max = maxPrice ? parseFloat(maxPrice) : Infinity;
+        return price >= min && price <= max;
+      });
+    }
 
     if (activeTab === 'Active') filtered = filtered.filter(p => !isSoftDeleted(p));
     else if (activeTab === 'Soft-Deleted') filtered = filtered.filter(p => isSoftDeleted(p));
@@ -221,7 +257,7 @@ export default function ProductsPage() {
       if (va > vb) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [products, prices, searchTerm, activeTab, unitFilter, sortField, sortDirection]);
+  }, [products, prices, searchTerm, activeTab, unitFilter, sortField, sortDirection, minPrice, maxPrice]);
 
   function handleSort(field) {
     if (sortField === field) {
@@ -245,6 +281,11 @@ export default function ProductsPage() {
   const activeCount = products.filter(p => !isSoftDeleted(p)).length;
   const softDeletedCount = products.filter(p => isSoftDeleted(p)).length;
   const tabCounts = { All: products.length, Active: activeCount, 'Soft-Deleted': softDeletedCount };
+
+  // Get min and max possible prices for placeholder hints
+  const allPrices = Array.from(prices.values()).map(p => p.unitprice).filter(p => p > 0);
+  const globalMinPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+  const globalMaxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 10000;
 
   return (
     <div className="p-6 max-w-full">
@@ -329,6 +370,56 @@ export default function ProductsPage() {
           </select>
         )}
 
+        {/* ── Price Range Filter ── */}
+        <button
+          onClick={() => setShowPriceFilter(!showPriceFilter)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all ${
+            showPriceFilter || minPrice || maxPrice
+              ? 'bg-pink-100 text-pink-700 border border-pink-200'
+              : 'border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+          }`}
+        >
+          <IconFilter />
+          <span>Price</span>
+          {(minPrice || maxPrice) && (
+            <span className="ml-1 w-4 h-4 rounded-full bg-pink-500 text-white text-[10px] flex items-center justify-center font-bold">!</span>
+          )}
+        </button>
+
+        {showPriceFilter && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <span className="text-xs text-gray-500 font-medium">₱</span>
+            <input
+              type="number"
+              value={minPrice}
+              onChange={e => setMinPrice(e.target.value)}
+              placeholder="Min"
+              className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-transparent"
+              min="0"
+              step="0.01"
+            />
+            <span className="text-xs text-gray-400">–</span>
+            <input
+              type="number"
+              value={maxPrice}
+              onChange={e => setMaxPrice(e.target.value)}
+              placeholder="Max"
+              className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-transparent"
+              min="0"
+              step="0.01"
+            />
+            {(minPrice || maxPrice) && (
+              <button
+                onClick={clearPriceFilters}
+                className="ml-1 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                title="Clear price filters"
+              >
+                <IconX />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5 ml-auto">
           {TABS.map(tab => (
             <button
@@ -350,6 +441,19 @@ export default function ProductsPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Active filter indicator ── */}
+      {(minPrice || maxPrice) && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-xs text-gray-500">Active filters:</span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 text-pink-600 text-xs">
+            Price: {minPrice ? `₱${parseFloat(minPrice).toLocaleString()}` : '₱0'} - {maxPrice ? `₱${parseFloat(maxPrice).toLocaleString()}` : 'Any'}
+            <button onClick={clearPriceFilters} className="ml-1 hover:text-pink-800">
+              <IconX />
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* ── Error ── */}
       {error && (
@@ -376,7 +480,7 @@ export default function ProductsPage() {
           </div>
           <p className="font-semibold text-gray-500">No products found</p>
           <p className="text-sm mt-1 text-gray-400">
-            {searchTerm ? 'Try a different search term.' : canAdd ? 'Add your first product using the button above.' : 'No products have been added yet.'}
+            {searchTerm || minPrice || maxPrice ? 'Try adjusting your filters.' : canAdd ? 'Add your first product using the button above.' : 'No products have been added yet.'}
           </p>
         </div>
       )}
@@ -542,6 +646,7 @@ export default function ProductsPage() {
           <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
             <p className="text-xs text-gray-400">
               Showing <span className="font-semibold text-gray-600">{displayed.length}</span> of <span className="font-semibold text-gray-600">{products.length}</span> products
+              {(minPrice || maxPrice) && <span className="ml-2 text-pink-500">(price filtered)</span>}
             </p>
             <p className="text-xs text-gray-400 hidden sm:block">Click any row to view price history</p>
           </div>

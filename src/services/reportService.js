@@ -53,12 +53,13 @@ export async function getProductReport({ search = '', sortField = 'prodcode', so
 export async function getTopSellingProducts() {
   const { data, error } = await supabase
     .from('top_selling_products')
-    .select('prodcode, description, unit, totalqty');
-
+    .select('prodcode, description, unit, totalqty, totalvalue');  // ← make sure totalvalue is here
+  
   if (error) {
     console.error('getTopSellingProducts error:', error.message);
     return { data: [], error };
   }
-
+  
+  console.log('Top selling data:', data); // Debug log
   return { data: data ?? [], error: null };
 }

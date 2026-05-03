@@ -163,6 +163,9 @@ export default function ReportTabAllProducts() {
   const [search,    setSearch]    = useState('');
   const [sortField, setSortField] = useState('prodcode');
   const [sortDir,   setSortDir]   = useState('asc');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [showPriceFilter, setShowPriceFilter] = useState(false);
 
   // ── Unchanged fetch logic ─────────────────────────────────────
   const fetchReport = useCallback(async () => {
@@ -193,19 +196,36 @@ export default function ReportTabAllProducts() {
   }, [rows, search]);
 
   const displayed = useMemo(() => {
-    return [...filtered].sort((a, b) => {
+    let filteredRows = [...filtered];
+    
+    // Apply price range filter
+    if (minPrice || maxPrice) {
+      const min = minPrice ? parseFloat(minPrice) : -Infinity;
+      const max = maxPrice ? parseFloat(maxPrice) : Infinity;
+      filteredRows = filteredRows.filter(row => {
+        const price = Number(row.unitprice);
+        return price >= min && price <= max;
+      });
+    }
+    
+    return filteredRows.sort((a, b) => {
       const va = sortField === 'unitprice' ? Number(a[sortField] ?? 0) : (a[sortField] ?? '').toLowerCase();
       const vb = sortField === 'unitprice' ? Number(b[sortField] ?? 0) : (b[sortField] ?? '').toLowerCase();
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
       if (va > vb) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filtered, sortField, sortDir]);
+  }, [filtered, sortField, sortDir, minPrice, maxPrice]);
 
   function handleSort(field) {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortDir('asc'); }
   }
+
+  const clearPriceFilters = () => {
+    setMinPrice('');
+    setMaxPrice('');
+  };
 
   // ── Summary metrics (derived from rows, not a new fetch) ──────
   const metrics = useMemo(() => {
@@ -258,9 +278,9 @@ export default function ReportTabAllProducts() {
       )}
 
       {/* ── Toolbar ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative w-full max-w-sm">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <IconSearch />
           </span>
           <input
@@ -268,14 +288,71 @@ export default function ReportTabAllProducts() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by code or description…"
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300 bg-white transition"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300 bg-white"
           />
         </div>
+
+        {/* Price Range Filter Button */}
+        <button
+          onClick={() => setShowPriceFilter(!showPriceFilter)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all ${
+            showPriceFilter || minPrice || maxPrice
+              ? 'bg-pink-100 text-pink-700 border border-pink-200'
+              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="22 3 2 3 10 13.46 10 21 14 18 14 13.46 22 3" />
+          </svg>
+          <span>Price</span>
+          {(minPrice || maxPrice) && (
+            <span className="ml-1 w-4 h-4 rounded-full bg-pink-500 text-white text-[10px] flex items-center justify-center">!</span>
+          )}
+        </button>
+
+        {/* Price Inputs */}
+        {showPriceFilter && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <span className="text-xs text-gray-500">₱</span>
+            <input
+              type="number"
+              value={minPrice}
+              onChange={e => setMinPrice(e.target.value)}
+              placeholder="Min"
+              className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300"
+              min="0"
+              step="0.01"
+            />
+            <span className="text-xs text-gray-400">–</span>
+            <input
+              type="number"
+              value={maxPrice}
+              onChange={e => setMaxPrice(e.target.value)}
+              placeholder="Max"
+              className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300"
+              min="0"
+              step="0.01"
+            />
+            {(minPrice || maxPrice) && (
+              <button
+                onClick={clearPriceFilters}
+                className="ml-1 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1"></div>
 
         {canExport && (
           <button
             onClick={() => exportToCSV(displayed, CSV_COLUMNS, CSV_HEADERS, 'product-report.csv')}
-            className="flex items-center gap-2 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm shrink-0 hover:opacity-90 active:scale-95"
+            className="flex items-center gap-2 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:opacity-90 active:scale-95"
             style={{ background: 'linear-gradient(135deg,#f43f5e,#ec4899)' }}
           >
             <IconDownload />
@@ -283,6 +360,28 @@ export default function ReportTabAllProducts() {
           </button>
         )}
       </div>
+      
+      {/* Active price filter indicator */}
+      {(minPrice || maxPrice) && (
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-500">Active filters:</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="22 3 2 3 10 13.46 10 21 14 18 14 13.46 22 3" />
+            </svg>
+            Price: {minPrice ? `₱${parseFloat(minPrice).toLocaleString()}` : '₱0'} – {maxPrice ? `₱${parseFloat(maxPrice).toLocaleString()}` : 'Any'}
+            <button onClick={clearPriceFilters} className="ml-1 hover:text-pink-900">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </span>
+          <button onClick={clearPriceFilters} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Clear all
+          </button>
+        </div>
+      )}
 
       {/* Count */}
       {!loading && !error && (

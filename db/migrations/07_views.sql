@@ -37,21 +37,34 @@ grant select on public.current_product_price to anon;
 -- Returns top 10 ACTIVE products ranked by total quantity sold.
 -- Requires salesdetail data. INNER JOIN excludes products with
 -- no sales records.
-drop view if exists public.top_selling_products;
+DROP VIEW IF EXISTS public.top_selling_products CASCADE;
 
-create view public.top_selling_products as
-select
+-- Create the view with totalvalue (sales value)
+CREATE VIEW public.top_selling_products AS
+SELECT
   p.prodcode,
   p.description,
   p.unit,
-  sum(sd.quantity) as totalqty
-from public.product p
-inner join public.salesdetail sd
-  on sd.prodcode = p.prodcode
-where p.record_status = 'ACTIVE'
-group by p.prodcode, p.description, p.unit
-order by totalqty desc
-limit 10;
+  COALESCE(SUM(sd.quantity), 0) AS totalqty,
+  COALESCE(SUM(sd.quantity * ph.unitprice), 0) AS totalvalue
+FROM public.product p
+LEFT JOIN public.salesdetail sd ON sd.prodcode = p.prodcode
+LEFT JOIN public.sales s ON s.transno = sd.transno
+LEFT JOIN public.pricehist ph ON ph.prodcode = p.prodcode
+  AND ph.effdate = (
+    SELECT MAX(ph2.effdate)
+    FROM public.pricehist ph2
+    WHERE ph2.prodcode = p.prodcode
+      AND ph2.effdate <= s.salesdate
+  )
+WHERE p.record_status = 'ACTIVE'
+GROUP BY p.prodcode, p.description, p.unit
+ORDER BY totalvalue DESC
+LIMIT 10;
 
-grant select on public.top_selling_products to authenticated;
-grant select on public.top_selling_products to anon;
+-- Grant permissions
+GRANT SELECT ON public.top_selling_products TO authenticated;
+GRANT SELECT ON public.top_selling_products TO anon;
+
+SELECT prodcode, description, unit, totalqty, totalvalue 
+FROM top_selling_products;
