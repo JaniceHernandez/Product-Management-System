@@ -1,27 +1,31 @@
 // src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import LoginPage        from './pages/LoginPage';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import ProductsPage     from './pages/ProductsPage';
-import ReportsPage      from './pages/ReportsPage';
-import AdminPage        from './pages/AdminPage';
-import DeletedItemsPage from './pages/DeletedItemsPage';
-import ProductReportPage from './pages/ProductReportPage';
-import TopSellingPage    from './pages/TopSellingPage';
+import LandingPage        from './pages/LandingPage';
+import LoginPage          from './pages/LoginPage';
+import AuthCallbackPage   from './pages/AuthCallbackPage';
+import ProductsPage       from './pages/ProductsPage';
+import AdminPage          from './pages/AdminPage';
+import DeletedItemsPage   from './pages/DeletedItemsPage';
+import ProductReportPage  from './pages/ProductReportPage';
 import UserManagementPage from './pages/UserManagementPage';
-import AppLayout        from './components/layout/AppLayout';
-import ProtectedRoute   from './components/ProtectedRoute';
-import RoleRoute        from './components/RoleRoute';
-import ActivityLogPage from './pages/ActivityLogPage';
-import DashboardPage from './pages/DashboardPage';
+import AppLayout          from './components/layout/AppLayout';
+import ProtectedRoute     from './components/ProtectedRoute';
+import RoleRoute          from './components/RoleRoute';
+import ActivityLogPage    from './pages/ActivityLogPage';
+import DashboardPage      from './pages/DashboardPage';
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/"              element={<Navigate to="/login" replace />} />
-
       {/* Public */}
+
+      {/*
+        / → LandingPage (mobile/tablet hero with Sign In button)
+              LandingPage self-redirects to /login on desktop (lg+)
+              so desktop users always land on the split-view login.
+      */}
+      <Route path="/"              element={<LandingPage />} />
       <Route path="/login"         element={<LoginPage />} />
       <Route path="/register"      element={<Navigate to="/login" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -45,11 +49,7 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      <Route path="/reports/top-selling" element={
-        <ProtectedRoute>
-          <AppLayout><TopSellingPage /></AppLayout>
-        </ProtectedRoute>
-      } />
+      <Route path="/reports/top-selling" element={<Navigate to="/reports" replace />} />
 
       <Route path="/admin" element={
         <ProtectedRoute>
@@ -57,7 +57,6 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      {/* Deleted Items — session required AND role must be ADMIN or SUPERADMIN */}
       <Route path="/deleted-items" element={
         <ProtectedRoute>
           <RoleRoute allowedRoles={['ADMIN', 'SUPERADMIN']}>
@@ -70,10 +69,9 @@ export default function App() {
         <ProtectedRoute>
           <AppLayout><ActivityLogPage /></AppLayout>
         </ProtectedRoute>
-        }
-      />
+      } />
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
