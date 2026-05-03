@@ -57,7 +57,6 @@ export function AuthProvider({ children }) {
       };
       setCurrentUser(profile);
     } catch (err) {
-      console.error('Failed to load user profile:', err);
       setAuthError('Could not load user profile');
     } finally {
       setLoading(false);

@@ -1,6 +1,4 @@
 // src/pages/AuthCallbackPage.jsx
-// FIXED: Signs out before redirecting to error pages so the session
-// is cleared and the user can try signing in with a different account.
 import { useEffect, useRef } from 'react';
 import { useNavigate }       from 'react-router-dom';
 import { useAuth }           from '../hooks/useAuth';
@@ -41,7 +39,6 @@ export default function AuthCallbackPage() {
         signOut()
           .then(() => navigate('/login?error=not_activated', { replace: true }))
           .catch(err => {
-            console.warn('Error signing out INACTIVE user:', err.message);
             navigate('/login?error=not_activated', { replace: true });
           });
       }
@@ -68,7 +65,6 @@ export default function AuthCallbackPage() {
       signOut()
         .then(() => navigate('/login?error=setup_incomplete', { replace: true }))
         .catch(err => {
-          console.warn('Error signing out after setup failure:', err.message);
           navigate('/login?error=setup_incomplete', { replace: true });
         });
     }

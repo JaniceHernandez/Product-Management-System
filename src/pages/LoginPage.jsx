@@ -208,7 +208,6 @@ export default function LoginPage() {
     if (!errorParam || loading) return;
     if (signedOutForError) return;
     signOut()
-      .catch(err => console.warn('Auto-signout on error page:', err.message))
       .finally(() => {
         setSignedOutForError(true);
         setTimeout(() => navigate('/login', { replace: true }), 100);
@@ -230,7 +229,6 @@ export default function LoginPage() {
         queryParams: { prompt: 'select_account' },
       },
     });
-    if (error) console.error('OAuth initiation error:', error.message);
   }
 
   if (loading || (errorParam && !signedOutForError)) {
