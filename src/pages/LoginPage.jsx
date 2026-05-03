@@ -43,22 +43,18 @@ const FEATURES = [
   },
 ];
 
-function LogoMark({ size = 'md' }) {
-  const sizes = {
-    sm: 'w-9 h-9 text-base rounded-xl',
-    md: 'w-12 h-12 text-xl rounded-2xl',
-    lg: 'w-14 h-14 text-2xl rounded-2xl',
+function Logo({ size = 'md', className = '' }) {
+  const sizeClasses = {
+    sm: 'h-8 w-8',
+    md: 'h-10 w-10',
+    lg: 'h-12 w-12',
   };
   return (
-    <div
-      className={`inline-flex items-center justify-center shrink-0 ${sizes[size]}`}
-      style={{
-        background: 'linear-gradient(135deg, #ec4899, #d946ef)',
-        boxShadow: '0 4px 14px rgba(236,72,153,0.4)',
-      }}
-    >
-      <span className="text-white font-bold">H</span>
-    </div>
+    <img
+      src="/hope-logo.png"
+      alt="HopePMS Logo"
+      className={`object-contain shrink-0 ${sizeClasses[size]} ${className}`}
+    />
   );
 }
 
@@ -119,11 +115,11 @@ function HeroPanel() {
 
       <div className="relative z-10 max-w-md">
         <div className="flex items-center gap-3 mb-10">
-          <LogoMark size="lg" />
+          <Logo size="lg" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">HopePMS</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Hope, Inc.</h1>
             <p className="text-xs font-semibold mt-0.5" style={{ color: '#ec4899' }}>
-              Hope, Inc. — Product Management System
+              Product Management System
             </p>
           </div>
         </div>
@@ -270,9 +266,9 @@ export default function LoginPage() {
           >
             {/* Desktop: mini label above card */}
             <div className="hidden lg:flex items-center gap-2.5 mb-8 self-start">
-              <LogoMark size="sm" />
+              <Logo size="sm" />
               <div>
-                <p className="text-sm font-bold text-gray-800 leading-none">Sign in to HopePMS</p>
+                <p className="text-sm font-bold text-gray-800 leading-none">Sign in</p>
                 <p className="text-xs mt-0.5" style={{ color: '#f9a8d4' }}>Secure · Role-based · Real-time</p>
               </div>
             </div>
@@ -281,16 +277,16 @@ export default function LoginPage() {
             <div
               className="bg-white rounded-2xl p-8 w-full"
               style={{
-                border: '1px solid #fce7f3',
-                boxShadow: '0 8px 32px rgba(236,72,153,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+                border: '1px solid #f3e8f5',
+                boxShadow: '0 10px 40px rgba(236,72,153,0.06), 0 1px 3px rgba(0,0,0,0.03)',
               }}
             >
               {/* Mobile-only logo inside card */}
               <div className="flex flex-col items-center mb-7 lg:hidden">
-                <LogoMark size="md" />
-                <h1 className="text-xl font-bold text-gray-900 mt-3">HopePMS</h1>
+                <Logo size="md" />
+                <h1 className="text-xl font-bold text-gray-900 mt-3">Hope, Inc.</h1>
                 <p className="text-xs font-semibold mt-0.5" style={{ color: '#ec4899' }}>
-                  Hope, Inc. — Product Management System
+                  Product Management System
                 </p>
               </div>
 

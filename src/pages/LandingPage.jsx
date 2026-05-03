@@ -114,25 +114,23 @@ export default function LandingPage() {
 
           {/* Logo */}
           <div
-            className="flex items-center gap-3 mb-10"
-            style={{ animation: 'fadeUp 0.4s ease both', animationDelay: '0ms' }}
-          >
-            <div
-              className="w-12 h-12 rounded-2xl inline-flex items-center justify-center shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, #ec4899, #d946ef)',
-                boxShadow: '0 4px 14px rgba(236,72,153,0.4)',
-              }}
-            >
-              <span className="text-white text-xl font-bold">H</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">HopePMS</h1>
-              <p className="text-xs font-semibold mt-0.5" style={{ color: '#ec4899' }}>
-                Hope, Inc. — Product Management System
-              </p>
-            </div>
+          className="flex items-center gap-3 mb-10"
+          style={{ animation: 'fadeUp 0.4s ease both', animationDelay: '0ms' }}
+        >
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-md flex items-center justify-center p-1">
+            <img
+              src="/hope-logo.png"
+              alt="HopePMS Logo"
+              className="h-10 w-auto rounded-lg"
+            />
           </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">HopePMS</h1>
+            <p className="text-xs font-semibold mt-0.5" style={{ color: '#ec4899' }}>
+              Hope, Inc. — Product Management System
+            </p>
+          </div>
+        </div>
 
           {/* Headline */}
           <div

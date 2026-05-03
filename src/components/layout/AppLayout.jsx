@@ -57,7 +57,7 @@ export default function AppLayout({ children }) {
             >
               <span className="text-white text-xs font-bold">H</span>
             </div>
-            <span className="text-sm font-bold text-gray-800 tracking-tight">HopePMS</span>
+            <span className="text-sm font-bold text-gray-800 tracking-tight">Hope, Inc.</span>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />

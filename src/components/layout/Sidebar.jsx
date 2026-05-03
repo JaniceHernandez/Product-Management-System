@@ -42,13 +42,12 @@ export default function Sidebar({ onNavigate }) {
 
       {/* ── Brand ── */}
       <div className="hidden lg:flex px-5 py-4 border-b border-pink-50 items-center gap-3">
-        <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'linear-gradient(135deg, #ec4899, #d946ef)', boxShadow: '0 4px 12px rgba(236,72,153,0.35)' }}
-        >
-          <span className="text-white text-xs font-bold">H</span>
-        </div>
-        <span className="text-sm font-bold text-gray-800 tracking-tight">HopePMS</span>
+        <img 
+          src="/hope-logo.png" 
+          alt="HopePMS Logo" 
+          className="h-8 w-8 object-contain shrink-0"
+        />
+        <span className="text-sm font-bold text-gray-800 tracking-tight">Hope, Inc.</span>
         <div className="ml-auto flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
           <span className="text-xs text-pink-300 font-medium">live</span>
