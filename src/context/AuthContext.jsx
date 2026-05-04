@@ -1,4 +1,4 @@
-// src/context/AuthContext.jsx – Minimal Persistent Session Implementation
+// src/context/AuthContext.jsx – Persistent Session with Single Sign‑In Log
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { logActivity } from '../services/activityLogService';
@@ -8,34 +8,10 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true); // true until session + profile are loaded
+  const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
 
-  useEffect(() => {
-    // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      if (existingSession) {
-        fetchUserProfile(existingSession.user.id, existingSession.user.email);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // 2. Listen for auth changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession) {
-        fetchUserProfile(newSession.user.id, newSession.user.email);
-      } else {
-        setCurrentUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
+  // Helper: log sign-in – only called for fresh sign-ins
   function logSignIn(profile) {
     if (!profile || profile.record_status !== 'ACTIVE') return;
     logActivity({
@@ -49,8 +25,8 @@ export function AuthProvider({ children }) {
     });
   }
 
-  // Fetch user profile from public.user table
-  async function fetchUserProfile(userId, email) {
+  // Fetch user profile – shouldLog = true only on fresh sign-in
+  async function fetchUserProfile(userId, email, shouldLog = false) {
     try {
       const { data, error } = await supabase
         .from('user')
@@ -70,13 +46,47 @@ export function AuthProvider({ children }) {
         isSeededSuperAdmin: data.user_type === 'SUPERADMIN' && data.is_seeded === true,
       };
       setCurrentUser(profile);
-      logSignIn(profile); 
+      
+      // Only log if this is a fresh sign-in (not session restore)
+      if (shouldLog && profile.record_status === 'ACTIVE') {
+        logSignIn(profile);
+      }
     } catch (err) {
       setAuthError('Could not load user profile');
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    // 1. Get initial session (page reload / existing session) – do NOT log
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      if (existingSession) {
+        fetchUserProfile(existingSession.user.id, existingSession.user.email, false);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession);
+      if (event === 'SIGNED_IN' && newSession) {
+        // Fresh sign-in – log it
+        fetchUserProfile(newSession.user.id, newSession.user.email, true);
+      } else if (newSession) {
+        // Session restored (e.g., token refresh) – no log
+        fetchUserProfile(newSession.user.id, newSession.user.email, false);
+      } else {
+        // Signed out
+        setCurrentUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function signOut() {
     if (currentUser) {
@@ -101,7 +111,7 @@ export function AuthProvider({ children }) {
     authError,
     signOut,
     refetchProfile: () => {
-      if (session) fetchUserProfile(session.user.id, session.user.email);
+      if (session) fetchUserProfile(session.user.id, session.user.email, false);
     },
   };
 
