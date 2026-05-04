@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx – Minimal Persistent Session Implementation
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { logActivity } from '../services/activityLogService';
 
 const AuthContext = createContext(null);
 
@@ -35,6 +36,19 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  function logSignIn(profile) {
+    if (!profile || profile.record_status !== 'ACTIVE') return;
+    logActivity({
+      actorId: profile.userid,
+      actorEmail: profile.email,
+      actorRole: profile.user_type,
+      action: 'USER_SIGNED_IN',
+      targetTable: 'user',
+      targetId: profile.userid,
+      detail: `${profile.username ?? profile.email} signed in`,
+    });
+  }
+
   // Fetch user profile from public.user table
   async function fetchUserProfile(userId, email) {
     try {
@@ -56,6 +70,7 @@ export function AuthProvider({ children }) {
         isSeededSuperAdmin: data.user_type === 'SUPERADMIN' && data.is_seeded === true,
       };
       setCurrentUser(profile);
+      logSignIn(profile); 
     } catch (err) {
       setAuthError('Could not load user profile');
     } finally {
@@ -64,6 +79,17 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    if (currentUser) {
+      await logActivity({
+        actorId: currentUser.userid,
+        actorEmail: currentUser.email,
+        actorRole: currentUser.user_type,
+        action: 'USER_SIGNED_OUT',
+        targetTable: 'user',
+        targetId: currentUser.userid,
+        detail: `${currentUser.username ?? currentUser.email} signed out`,
+      });
+    }
     await supabase.auth.signOut();
     // State will be cleared by onAuthStateChange
   }
